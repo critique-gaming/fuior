@@ -1,0 +1,9 @@
+# Workaround for libs.c not compiling on GCC on Linux
+
+CFLAGS = -O3 -Wall -Iinclude
+
+lib/x86_64-linux/libfuior.a: build/fuior.o
+	$(AR) rcs $@ $^
+
+build/fuior.o: src/libs.c
+	$(CC) $(CFLAGS) -o $@ -c $<

@@ -1,0 +1,12 @@
+SOURCES = \
+	main.c \
+	../include/tree_sitter/src/lib.c \
+	../src/fuior.c \
+	../include/parser.c
+
+HEADERS = ../src/fuior.h
+
+CFLAGS = -I. -I../src -I../include
+
+build/fuior.exe: $(SOURCES) $(HEADERS)
+	$(CC) /Fo: build/ /Fe: $@ $(SOURCES) $(CFLAGS)

@@ -1,0 +1,41 @@
+name: fuior_compiler
+platforms:
+  armv7-ios:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  arm64-ios:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86_64-ios:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  armv7-android:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  arm64-android:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86-osx:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86_64-osx:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86-linux:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86_64-linux:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86-win32:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  x86_64-win32:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  js-web:
+    context:
+      flags: ['-Wno-c++11-narrowing']
+  wasm-web:
+    context:
+      flags: ['-Wno-c++11-narrowing']

@@ -1,0 +1,24 @@
+local fuiorc = require "fuior_compiler.compiler"
+
+local fui = {}
+function fui.intl(namespace, keys)
+    return function (key)
+        return keys[key]
+    end
+end
+
+setmetatable(fui, {
+    __index = function (t, field)
+        return function (...)
+            print("Called command ", field, ...)
+        end
+    end
+})
+
+function init(self)
+    print("Compiling and running config.fui...")
+    fuiorc.compile("/example/fuior_files/config.fui")(fui)
+
+    print("Compiling and running test.fui...")
+    fuiorc.compile("/example/fuior_files/test.fui")(fui)
+end

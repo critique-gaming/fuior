@@ -1,0 +1,9 @@
+enum char alice
+enum char bob
+
+define_var some_stat number 0
+define_var some_flag boolean false
+
+define_cmd log   vararg
+define_cmd wait  seconds number
+define_cmd wait_for_input
