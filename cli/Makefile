@@ -1,12 +1,18 @@
+TARGET = $(shell uname)
+
+EXT_DIR = ../fuior_compiler/native_extension
+BIN_EXT =
+
 SOURCES = \
 	main.c \
-	../include/tree_sitter/src/lib.c \
-	../src/fuior.c \
-	../include/parser.c
+	$(EXT_DIR)/include/tree_sitter/src/lib.c \
+	$(EXT_DIR)/src/fuior.c \
+	$(EXT_DIR)/include/parser.c
 
-HEADERS = ../src/fuior.h
+HEADERS = $(EXT_DIR)/src/fuior.h
 
-CFLAGS = -I. -I../src -I../include -g
+CFLAGS = -std=gnu11 -I. -I$(EXT_DIR)/src -I$(EXT_DIR)/include -g
 
-build/fuior: $(SOURCES) $(HEADERS)
+build/$(TARGET)/fuior$(BIN_EXT): $(SOURCES) $(HEADERS)
+	mkdir -p build/$(TARGET)
 	$(CC) -o $@ $(SOURCES) $(CFLAGS)
