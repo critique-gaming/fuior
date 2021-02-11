@@ -1,5 +1,10 @@
-log "This is a test"
-
-show_character alice
-
 alice: [worried] Hey!
+
+bob: [idle] Yo!
+
+set some_flag
+
+some_stat = 12
+log_var some_stat
+
+log "This is a test"
