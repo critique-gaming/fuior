@@ -89,4 +89,6 @@ globals = {
         "assert_not_type",
         "assert_same",
         "assert_unique",
+
+        "fuior_compiler",
 }
