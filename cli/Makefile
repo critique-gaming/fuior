@@ -11,8 +11,9 @@ SOURCES = \
 
 HEADERS = $(EXT_DIR)/src/fuior.h
 
-CFLAGS = -std=gnu11 -I. -I$(EXT_DIR)/src -I$(EXT_DIR)/include -g
+INCLUDES = -I. -I$(EXT_DIR)/src -I$(EXT_DIR)/include
+CFLAGS = -std=gnu11
 
 build/$(TARGET)/fuior$(BIN_EXT): $(SOURCES) $(HEADERS)
 	mkdir -p build/$(TARGET)
-	$(CC) -o $@ $(SOURCES) $(CFLAGS)
+	$(CC) -o $@ $(SOURCES) $(CFLAGS) $(INCLUDES)
