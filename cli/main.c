@@ -118,18 +118,18 @@ int main(int argc, char ** argv) {
     ts_parser_delete(parser);
 
     for (size_t i = 0; i < results->warning_count; i++) {
-        printf("WARNING: %s\n", results->warnings[i]);
+        fprintf(stderr, "WARNING: %s\n", results->warnings[i]);
     }
 
     for (size_t i = 0; i < results->error_count; i++) {
-        printf("ERROR: %s\n", results->errors[i]);
+        fprintf(stderr, "ERROR: %s\n", results->errors[i]);
     }
 
-    if (results->output) {
+    if (results->output && results->error_count == 0) {
         printf("%s", results->output);
         fuior_results_free(results);
         free(file_contents);
-        return results->error_count != 0 ? -1 : 0;
+        return 0;
     }
 
     fuior_results_free(results);
