@@ -129,7 +129,7 @@ int main(int argc, char ** argv) {
         printf("%s", results->output);
         fuior_results_free(results);
         free(file_contents);
-        return 0;
+        return results->error_count != 0 ? -1 : 0;
     }
 
     fuior_results_free(results);
