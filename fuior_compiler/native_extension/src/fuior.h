@@ -5,17 +5,24 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <tree_sitter/api.h>
 
 struct fuior_state;
 typedef struct fuior_state fuior_state;
 
 typedef struct {
-    char * output;
+    unsigned int start_row, start_column, end_row, end_column;
+    const char *filename;
+    char *message;
+} fuior_message;
+
+typedef struct {
+    char *output;
     size_t error_count;
-    char ** errors;
+    fuior_message **errors;
     size_t warning_count;
-    char ** warnings;
+    fuior_message **warnings;
 } fuior_results;
 
 typedef struct {
@@ -34,9 +41,9 @@ bool fuior_state_has_errors(const fuior_state *state);
 void fuior_state_free(fuior_state *state);
 
 void fuior_check_syntax(fuior_state *state, fuior_source_file *source_file);
-void fuior_analyse(fuior_state *state, fuior_source_file *source_file);
+void fuior_analyse(fuior_state *state, fuior_source_file *source_file, const char *intl_filename);
 void fuior_lint(fuior_state *state, fuior_source_file *source_file);
-void fuior_generate(fuior_state *state, fuior_source_file *source_file);
+void fuior_generate_lua(fuior_state *state, fuior_source_file *source_file);
 
 void fuior_results_free(fuior_results * results);
 

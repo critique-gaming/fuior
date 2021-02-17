@@ -3,8 +3,11 @@ EXT_DIR = ../fuior_compiler/native_extension
 SOURCES = \
 	main.c \
 	$(EXT_DIR)/include/tree_sitter/src/lib.c \
+	$(EXT_DIR)/include/parser.c \
 	$(EXT_DIR)/src/fuior.c \
-	$(EXT_DIR)/include/parser.c
+	$(EXT_DIR)/src/fuior_generate_lua.c \
+	$(EXT_DIR)/src/fuior_analyze.c \
+	$(EXT_DIR)/src/fuior_lint.c
 
 HEADERS = $(EXT_DIR)/src/fuior.h
 
