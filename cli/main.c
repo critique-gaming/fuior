@@ -109,7 +109,7 @@ static void print_help(FILE *stream) {
     fprintf(stream, "\t--output out_filename\tFile name where to generate lua code. Use - for stdout. Defaults to stdout\n");
     fprintf(stream, "\t--o out_filename\n");
     fprintf(stream, "\t--no-generate\tDon't generate code. Just check for errors\n");
-    fprintf(stream, "\t--header\tPath to a header with definitions. Defaults to searching for a config.fui in parent directories\n");
+    fprintf(stream, "\t--header header_filename\tPath to a header with definitions. Defaults to searching for a config.fui in parent directories\n");
     fprintf(stream, "\t--intl-filename\tFilename used to generate the default intl prefix. Defaults to the source file's filename\n");
     fprintf(stream, "\t--error-ranges\tShow full error ranges\n");
 }
@@ -150,6 +150,10 @@ static void parse_command_line(command_line *cli, int argc, char **argv) {
 
         } else if (0 == strcmp(arg, "--error-ranges")) {
             cli->error_ranges = true;
+
+        } else if (0 == strcmp(arg, "--header")) {
+            expect_args(1);
+            cli->header_filename = argv[i + 1];
 
         } else if (0 == strcmp(arg, "--help") || 0 == strcmp(arg, "-h")) {
             print_help(stdout);
