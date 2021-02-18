@@ -40,7 +40,25 @@ static char * default_intl_prefix(const char * filename) {
         res[len] = '.';
         res[len + 1] = 0;
     } else {
-        uint32_t dirname_hash = hash(filename, basename - filename);
+        size_t dirname_count = basename - filename;
+        char *normalized_dirname = malloc(dirname_count + 2);
+        normalized_dirname[0] = '/';
+        strncpy(normalized_dirname + 1, filename, dirname_count);
+        normalized_dirname[dirname_count + 1] = '\0';
+
+        for (size_t j = 1; j <= dirname_count; j++) {
+            if (normalized_dirname[j] == '\\') {
+                normalized_dirname[j] = '/';
+            }
+        }
+
+        uint32_t dirname_hash;
+        if (normalized_dirname[1] == '/') {
+            dirname_hash = hash(normalized_dirname + 1, dirname_count);
+        } else {
+            dirname_hash = hash(normalized_dirname, 1 + dirname_count);
+        }
+        free(normalized_dirname);
 
         size_t basename_len = len - (basename - filename);
         res = (char*)malloc(9 + basename_len);
