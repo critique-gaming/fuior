@@ -11,7 +11,7 @@
 #include "fuior_list.h"
 
 #ifdef __cplusplus
-extern "C"
+extern "C" {
 #endif
 
 static char * default_intl_prefix(const char * filename) {
@@ -41,7 +41,7 @@ static char * default_intl_prefix(const char * filename) {
         res[len + 1] = 0;
     } else {
         size_t dirname_count = basename - filename;
-        char *normalized_dirname = malloc(dirname_count + 2);
+        char *normalized_dirname = (char*)malloc(dirname_count + 2);
         normalized_dirname[0] = '/';
         strncpy(normalized_dirname + 1, filename, dirname_count);
         normalized_dirname[dirname_count + 1] = '\0';
@@ -139,3 +139,7 @@ void fuior_analyse(fuior_state *state, fuior_source_file *source_file, const cha
         state->intl_prefix = default_intl_prefix(intl_filename ? intl_filename : source_file->filename);
     }
 }
+
+#ifdef __cplusplus
+}
+#endif

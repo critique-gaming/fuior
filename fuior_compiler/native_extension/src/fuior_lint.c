@@ -11,10 +11,14 @@
 #include "fuior_list.h"
 
 #ifdef __cplusplus
-extern "C"
+extern "C" {
 #endif
 
 void fuior_lint(fuior_state *state, fuior_source_file *source_file) {
     state->filename = source_file->filename;
     state->input = source_file->input;
 }
+
+#ifdef __cplusplus
+}
+#endif
