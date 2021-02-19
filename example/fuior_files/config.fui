@@ -12,6 +12,6 @@ declare_cmd log_var varname varname
 declare_cmd set  varname varname
 declare_cmd unset  varname varname
 
-declare_cmd animate  character char  animation animation
+declare_cmd animate  character char  animation string
 
 declare_cmd wait  seconds number

@@ -6,6 +6,7 @@ extern "C" {
 
 #include <tree_sitter/api.h>
 #include "fuior_list.h"
+#include "fuior_map.h"
 #include "fuior_strlist.h"
 
 struct fuior_state {
@@ -19,7 +20,73 @@ struct fuior_state {
 
     fuior_list errors;
     fuior_list warnings;
+
+    fuior_map commands;
+    fuior_map named_types;
+    fuior_map variables;
+    fuior_list types;
+
+    struct fuior_type *varname_enum;
 };
+
+typedef enum fuior_type_tag {
+    TYPE_NIL,
+    TYPE_NUMBER,
+    TYPE_STRING,
+    TYPE_BOOLEAN,
+    TYPE_ENUM,
+    TYPE_ANY,
+    TYPE_UNION,
+    TYPE_INTERSECTION,
+} fuior_type_tag;
+
+typedef struct fuior_type {
+    fuior_type_tag tag;
+    union {
+        struct {
+            fuior_map items;
+        } as_enum;
+        struct {
+            fuior_list items;
+        } as_op;
+    };
+} fuior_type;
+
+typedef struct fuior_command_arg {
+    fuior_type *type;
+    char *name;
+    char *type_name;
+} fuior_command_arg;
+
+static inline fuior_command_arg *fuior_command_arg_new(char *name, char *type_name, fuior_type *type) {
+    fuior_command_arg *arg = (fuior_command_arg*)malloc(sizeof(fuior_command_arg));
+    arg->type = type;
+    arg->name = (char*)malloc(strlen(name) + 1);
+    strcpy(arg->name, name);
+    arg->type_name = (char*)malloc(strlen(type_name) + 1);
+    strcpy(arg->type_name, type_name);
+    return arg;
+}
+
+typedef struct fuior_command {
+    fuior_list args;
+    fuior_command_arg *vararg;
+} fuior_command;
+
+static inline fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag) {
+    fuior_type *type = (fuior_type*)calloc(1, sizeof(fuior_type));
+    type->tag = tag;
+    fuior_list_push(&state->types, (void*)type);
+    return type;
+}
+
+static inline void fuior_type_clear(fuior_type *type) {
+    if (type->tag == TYPE_ENUM) {
+        fuior_map_clear(&type->as_enum.items, false);
+    } else if (type->tag == TYPE_UNION || type->tag == TYPE_INTERSECTION) {
+        fuior_list_clear_keep_data(&type->as_op.items);
+    }
+}
 
 typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol ERROR;
@@ -61,8 +128,11 @@ extern fuior_tree_sitter_symbols_t fuior_tree_sitter_symbols;
 #define CMD_INTL_PREFIX 1
 #define CMD_COUNT 2
 
-extern const char * const fuior_special_commands[];
-int fuior_get_special_command(fuior_state * state, TSNode command_verb);
+extern const char * const fuior_special_commands_intl[];
+int fuior_get_special_command(fuior_state * state, TSNode command_verb, const char * const *special_commands);
+char * fuior_command_arg_to_string(fuior_state *state, TSNode node);
+
+fuior_command *fuior_command_register(fuior_state *state, const char *name);
 
 fuior_message *fuior_message_create(const char *filename, TSNode node, const char *format, ...);
 

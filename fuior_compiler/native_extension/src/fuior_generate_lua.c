@@ -226,7 +226,7 @@ static void generate_command(fuior_state * state, TSNode node) {
 
         TSSymbol symbol = ts_node_symbol(child);
         if (symbol == sym.command_verb) {
-            if (fuior_get_special_command(state, child) != -1) { return; }
+            if (fuior_get_special_command(state, child, fuior_special_commands_intl) != -1) { return; }
             generate_indent(state);
             fuior_strlist_push(&state->output, "fui.");
             generate_identifier(state, child);

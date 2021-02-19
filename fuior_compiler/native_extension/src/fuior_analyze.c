@@ -77,7 +77,7 @@ static char * default_intl_prefix(const char * filename) {
     return res;
 }
 
-static char * command_arg_to_string(fuior_state *state, TSNode node) {
+char * fuior_command_arg_to_string(fuior_state *state, TSNode node) {
     while (1) {
         if (ts_node_is_null(node)) { return NULL; }
         if (ts_node_symbol(node) == sym.command_arg) { break; }
@@ -109,17 +109,23 @@ static char * command_arg_to_string(fuior_state *state, TSNode node) {
     return res;
 }
 
+const char * const fuior_special_commands_intl[] = {
+    "intl_namespace",
+    "intl_prefix",
+    NULL
+};
+
 static void scan_for_special_commands(fuior_state *state, TSNode node) {
     if (ts_node_symbol(node) == sym.command_verb) {
-        int cmd = fuior_get_special_command(state, node);
+        int cmd = fuior_get_special_command(state, node, fuior_special_commands_intl);
         switch (cmd) {
             case -1: break;
             case CMD_INTL_NAMESPACE: {
-                state->intl_namespace = command_arg_to_string(state, ts_node_next_named_sibling(node));
+                state->intl_namespace = fuior_command_arg_to_string(state, ts_node_next_named_sibling(node));
                 break;
             }
             case CMD_INTL_PREFIX: {
-                state->intl_prefix = command_arg_to_string(state, ts_node_next_named_sibling(node));
+                state->intl_prefix = fuior_command_arg_to_string(state, ts_node_next_named_sibling(node));
                 break;
             }
         }

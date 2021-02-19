@@ -16,23 +16,17 @@ extern "C" {
 
 const TSLanguage *tree_sitter_fuior();
 
-const char * const fuior_special_commands[] = {
-    "intl_namespace",
-    "intl_prefix",
-    NULL
-};
-
 static const TSLanguage * fuior_language = NULL;
 fuior_tree_sitter_symbols_t fuior_tree_sitter_symbols;
 
-int fuior_get_special_command(fuior_state * state, TSNode command_verb) {
+int fuior_get_special_command(fuior_state * state, TSNode command_verb, const char * const *special_commands) {
     size_t start = ts_node_start_byte(command_verb);
     size_t end = ts_node_end_byte(command_verb);
     size_t len = end - start;
     const char * str = state->input + start;
 
-    for (int i = 0; fuior_special_commands[i]; i++) {
-        if (strncmp(str, fuior_special_commands[i], len) == 0) {
+    for (int i = 0; special_commands[i]; i++) {
+        if (strncmp(str, special_commands[i], len) == 0) {
             return i;
         }
     }
@@ -131,6 +125,30 @@ TSParser* fuior_parser_new() {
 
 fuior_state *fuior_state_new() {
     fuior_state *state = (fuior_state*)calloc(1, sizeof(fuior_state));
+
+    fuior_type *string_type = fuior_type_new(state, TYPE_STRING);
+    fuior_type *any_type = fuior_type_new(state, TYPE_ANY);
+    fuior_map_set(&state->named_types, "string", string_type);
+    fuior_map_set(&state->named_types, "nil", fuior_type_new(state, TYPE_NIL));
+    fuior_map_set(&state->named_types, "boolean", fuior_type_new(state, TYPE_BOOLEAN));
+    fuior_map_set(&state->named_types, "number", fuior_type_new(state, TYPE_NUMBER));
+    fuior_map_set(&state->named_types, "any", any_type);
+
+    fuior_type *varname_type = fuior_type_new(state, TYPE_ENUM);
+    fuior_map_set(&state->named_types, "varname", varname_type);
+    state->varname_enum = varname_type;
+
+    fuior_command *enum_cmd = fuior_command_register(state, "enum");
+    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", "string", string_type));
+    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item", "string", string_type));
+
+    fuior_command *declare_cmd_cmd = fuior_command_register(state, "declare_cmd");
+    declare_cmd_cmd->vararg = fuior_command_arg_new("...", "any", any_type);
+
+    fuior_command *declare_var_cmd = fuior_command_register(state, "declare_var");
+    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_name", "string", string_type));
+    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_type", "string", string_type));
+
     return state;
 }
 
@@ -142,6 +160,17 @@ void fuior_state_free(fuior_state *state) {
     free(state->intl_prefix);
     free(state->intl_namespace);
     free(state);
+
+    // TODO: free commands
+
+    fuior_map_clear(&state->commands, false);
+    fuior_map_clear(&state->variables, false);
+    fuior_map_clear(&state->named_types, false);
+
+    for (fuior_list_item *it = state->types.first; it; it = it->next) {
+        fuior_type_clear((fuior_type*)it->data);
+    }
+    fuior_list_clear(&state->types);
 }
 
 void fuior_parse(fuior_source_file *sourcefile, TSParser *parser, const char * input, size_t input_len, const char * filename, TSTree *previous_tree) {
