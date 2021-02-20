@@ -91,22 +91,13 @@ char * fuior_command_arg_to_string(fuior_state *state, TSNode node) {
         symbol = ts_node_symbol(child);
     }
 
-    size_t start = 0;
-    size_t end = 0;
     if (symbol == sym.bare_word) {
-        start = ts_node_start_byte(child);
-        end = ts_node_end_byte(child);
+        return fuior_node_to_string(state, child);
     } else if (symbol == sym.string) {
-        start = ts_node_start_byte(child) + 1;
-        end = ts_node_end_byte(child) - 1;
+        return fuior_string_node_to_string(state, child);
     } else {
         return NULL;
     }
-
-    char * res = (char*)malloc(end - start + 1);
-    memcpy(res, state->input + start, end - start);
-    res[end - start] = 0;
-    return res;
 }
 
 const char * const fuior_special_commands_intl[] = {

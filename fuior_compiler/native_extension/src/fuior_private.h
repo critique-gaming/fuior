@@ -64,6 +64,18 @@ static inline char *fuior_clone_string(const char *s) {
     return copy;
 }
 
+static inline char *fuior_node_to_string_(fuior_state *state, TSNode node, size_t start_offset, size_t end_offset) {
+    size_t start = ts_node_start_byte(node) + start_offset;
+    size_t end = ts_node_end_byte(node) - end_offset;
+    char * res = (char*)malloc(end - start + 1);
+    memcpy(res, state->input + start, end - start);
+    res[end - start] = 0;
+    return res;
+}
+
+#define fuior_node_to_string(state, node) fuior_node_to_string_(state, node, 0, 0)
+#define fuior_string_node_to_string(state, node) fuior_node_to_string_(state, node, 1, 1)
+
 static inline fuior_command_arg *fuior_command_arg_new(char *name, fuior_type *type) {
     fuior_command_arg *arg = (fuior_command_arg*)malloc(sizeof(fuior_command_arg));
     arg->type = type;
