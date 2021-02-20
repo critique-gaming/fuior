@@ -135,19 +135,20 @@ fuior_state *fuior_state_new() {
     fuior_map_set(&state->named_types, "any", any_type);
 
     fuior_type *varname_type = fuior_type_new(state, TYPE_ENUM);
+    varname_type->name = fuior_clone_string("varname");
     fuior_map_set(&state->named_types, "varname", varname_type);
     state->varname_enum = varname_type;
 
     fuior_command *enum_cmd = fuior_command_register(state, "enum");
-    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", "string", string_type));
-    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item", "string", string_type));
+    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", string_type));
+    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item",  string_type));
 
     fuior_command *declare_cmd_cmd = fuior_command_register(state, "declare_cmd");
-    declare_cmd_cmd->vararg = fuior_command_arg_new("...", "any", any_type);
+    declare_cmd_cmd->vararg = fuior_command_arg_new("...", any_type);
 
     fuior_command *declare_var_cmd = fuior_command_register(state, "declare_var");
-    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_name", "string", string_type));
-    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_type", "string", string_type));
+    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_name", string_type));
+    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_type", string_type));
 
     return state;
 }

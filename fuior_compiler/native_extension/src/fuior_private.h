@@ -42,6 +42,7 @@ typedef enum fuior_type_tag {
 
 typedef struct fuior_type {
     fuior_type_tag tag;
+    char *name;
     union {
         struct {
             fuior_map items;
@@ -55,16 +56,18 @@ typedef struct fuior_type {
 typedef struct fuior_command_arg {
     fuior_type *type;
     char *name;
-    char *type_name;
 } fuior_command_arg;
 
-static inline fuior_command_arg *fuior_command_arg_new(char *name, char *type_name, fuior_type *type) {
+static inline char *fuior_clone_string(const char *s) {
+    char *copy = (char*)malloc(strlen(s) + 1);
+    strcpy(copy, s);
+    return copy;
+}
+
+static inline fuior_command_arg *fuior_command_arg_new(char *name, fuior_type *type) {
     fuior_command_arg *arg = (fuior_command_arg*)malloc(sizeof(fuior_command_arg));
     arg->type = type;
-    arg->name = (char*)malloc(strlen(name) + 1);
-    strcpy(arg->name, name);
-    arg->type_name = (char*)malloc(strlen(type_name) + 1);
-    strcpy(arg->type_name, type_name);
+    arg->name = fuior_clone_string(name);
     return arg;
 }
 
@@ -73,20 +76,9 @@ typedef struct fuior_command {
     fuior_command_arg *vararg;
 } fuior_command;
 
-static inline fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag) {
-    fuior_type *type = (fuior_type*)calloc(1, sizeof(fuior_type));
-    type->tag = tag;
-    fuior_list_push(&state->types, (void*)type);
-    return type;
-}
-
-static inline void fuior_type_clear(fuior_type *type) {
-    if (type->tag == TYPE_ENUM) {
-        fuior_map_clear(&type->as_enum.items, false);
-    } else if (type->tag == TYPE_UNION || type->tag == TYPE_INTERSECTION) {
-        fuior_list_clear_keep_data(&type->as_op.items);
-    }
-}
+fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag);
+void fuior_type_clear(fuior_type *type);
+char *fuior_type_name(fuior_type *type);
 
 typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol ERROR;

@@ -55,6 +55,7 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
                     fuior_type *enum_type = fuior_map_get(&state->named_types, enum_name);
                     if (!enum_type) {
                         enum_type = fuior_type_new(state, TYPE_ENUM);
+                        enum_type->name = fuior_clone_string(enum_name);
                         fuior_map_set(&state->named_types, enum_name, (void*)enum_type);
                     }
                     if (enum_type->tag != TYPE_ENUM) {
@@ -130,7 +131,7 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
                     if (argname && argtype) {
                         fuior_type *type = fuior_map_get(&state->named_types, argtype);
                         if (type) {
-                            fuior_command_arg *arg = fuior_command_arg_new(argname, argtype, type);
+                            fuior_command_arg *arg = fuior_command_arg_new(argname, type);
                             bool add_to_list = true;
                             if (0 == strcmp("...", argname)) {
                                 if (cmd->vararg) {
@@ -166,6 +167,59 @@ void fuior_lint(fuior_state *state, fuior_source_file *source_file) {
     state->filename = source_file->filename;
     state->input = source_file->input;
     scan_for_declarations(state, ts_tree_root_node(source_file->tree));
+}
+
+fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag) {
+    fuior_type *type = (fuior_type*)calloc(1, sizeof(fuior_type));
+    type->tag = tag;
+    fuior_list_push(&state->types, (void*)type);
+    return type;
+}
+
+void fuior_type_clear(fuior_type *type) {
+    free(type->name);
+    type->name = NULL;
+    if (type->tag == TYPE_ENUM) {
+        fuior_map_clear(&type->as_enum.items, false);
+    } else if (type->tag == TYPE_UNION || type->tag == TYPE_INTERSECTION) {
+        fuior_list_clear_keep_data(&type->as_op.items);
+    }
+}
+
+static const char *fuior_type_const_name(fuior_type *type) {
+    if (type->name) return type->name;
+    switch (type->tag) {
+        case TYPE_NIL: return "nil";
+        case TYPE_ANY: return "any";
+        case TYPE_BOOLEAN: return "boolean";
+        case TYPE_STRING: return "string";
+        case TYPE_NUMBER: return "number";
+        case TYPE_ENUM: return "enum";
+        default: return NULL;
+    }
+}
+
+char *fuior_type_name(fuior_type *type) {
+    const char *const_name = fuior_type_const_name(type);
+    if (const_name != NULL) {
+        return fuior_clone_string(const_name);
+    }
+    if (type->tag == TYPE_UNION || type->tag == TYPE_INTERSECTION) {
+        fuior_strlist buffer;
+        bool first = true;
+        const char *sep = type->tag == TYPE_UNION ? " | " : " & ";
+        for (fuior_list_item *it = type->as_op.items.first; it; it = it->next) {
+            if (!first) {
+                first = false;
+                fuior_strlist_push(&buffer, sep);
+            }
+            fuior_strlist_push_nocopy(&buffer, fuior_type_name((fuior_type*)it->data));
+        }
+        char *res = fuior_strlist_concat(&buffer);
+        fuior_strlist_clear(&buffer);
+        return res;
+    }
+    return NULL;
 }
 
 #ifdef __cplusplus
