@@ -10,10 +10,6 @@
 #include "fuior_strlist.h"
 #include "fuior_list.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 const char * const special_commands_lint[] = {
     #define CMD_ENUM 0
     "enum",
@@ -51,7 +47,7 @@ static void handle_command(fuior_state *state, TSNode node) {
             TSNode arg2 = next_node(sym.command_arg, arg1);
             char * item_name = fuior_command_arg_to_string(state, arg2);
             if (enum_name && item_name) {
-                fuior_type *enum_type = fuior_map_get(&state->named_types, enum_name);
+                fuior_type *enum_type = (fuior_type*)fuior_map_get(&state->named_types, enum_name);
                 if (!enum_type) {
                     enum_type = fuior_type_new(state, TYPE_ENUM);
                     enum_type->name = fuior_clone_string(enum_name);
@@ -72,26 +68,26 @@ static void handle_command(fuior_state *state, TSNode node) {
 
         case CMD_DECLARE_VAR: {
             TSNode arg1 = next_node(sym.command_arg, node);
-            char * varname = fuior_command_arg_to_string(state, arg1);
+            char * var_name = fuior_command_arg_to_string(state, arg1);
             TSNode arg2 = next_node(sym.command_arg, arg1);
-            char * typename = fuior_command_arg_to_string(state, arg2);
-            if (varname && typename) {
+            char * type_name = fuior_command_arg_to_string(state, arg2);
+            if (var_name && type_name) {
                 fuior_type *var_type;
-                var_type = fuior_map_get(&state->variables, varname);
+                var_type = (fuior_type*)fuior_map_get(&state->variables, var_name);
                 if (var_type) {
-                    add_error(arg1, "variable %s already exists", varname);
+                    add_error(arg1, "variable %s already exists", var_name);
                 }
-                var_type = fuior_map_get(&state->named_types, typename);
+                var_type = (fuior_type*)fuior_map_get(&state->named_types, type_name);
                 if (!var_type) {
-                    add_error(arg2, "unknown type %s", typename);
+                    add_error(arg2, "unknown type %s", type_name);
                 }
-                fuior_map_set(&state->variables, varname, (void*)var_type);
-                fuior_map_set(&state->varname_enum->as_enum.items, varname, (void*)1);
+                fuior_map_set(&state->variables, var_name, (void*)var_type);
+                fuior_map_set(&state->varname_enum->as_enum.items, var_name, (void*)1);
             } else {
                 add_error(node, "declare_var expects var name and type");
             }
-            free(varname);
-            free(typename);
+            free(var_name);
+            free(type_name);
             break;
         }
 
@@ -103,7 +99,7 @@ static void handle_command(fuior_state *state, TSNode node) {
                 break;
             }
 
-            fuior_command *cmd = fuior_map_get(&state->commands, cmd_name);
+            fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, cmd_name);
             if (cmd) {
                 add_error(arg1, "%s command already declared", cmd_name);
                 free(cmd_name);
@@ -128,7 +124,7 @@ static void handle_command(fuior_state *state, TSNode node) {
                     add_error(node, "expected argument type");
                 }
                 if (argname && argtype) {
-                    fuior_type *type = fuior_map_get(&state->named_types, argtype);
+                    fuior_type *type = (fuior_type*)fuior_map_get(&state->named_types, argtype);
                     if (type) {
                         fuior_command_arg *arg = fuior_command_arg_new(argname, type);
                         bool add_to_list = true;
@@ -236,7 +232,3 @@ char *fuior_type_name(fuior_type *type) {
     }
     return NULL;
 }
-
-#ifdef __cplusplus
-}
-#endif

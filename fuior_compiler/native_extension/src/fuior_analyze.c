@@ -10,10 +10,6 @@
 #include "fuior_strlist.h"
 #include "fuior_list.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 static char * default_intl_prefix(const char * filename) {
     char * res = NULL;
 
@@ -136,7 +132,3 @@ void fuior_analyse(fuior_state *state, fuior_source_file *source_file, const cha
         state->intl_prefix = default_intl_prefix(intl_filename ? intl_filename : source_file->filename);
     }
 }
-
-#ifdef __cplusplus
-}
-#endif

@@ -10,10 +10,6 @@
 #include "fuior_strlist.h"
 #include "fuior_list.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 static void generate_block(fuior_state * state, TSNode node);
 static void generate_expression_container(fuior_state * state, TSNode node);
 static void generate_expression(fuior_state * state, TSNode node);
@@ -522,7 +518,3 @@ void fuior_generate_lua(fuior_state *state, fuior_source_file *source_file) {
     state->input = source_file->input;
     generate_source_file(state, ts_tree_root_node(source_file->tree));
 }
-
-#ifdef __cplusplus
-}
-#endif

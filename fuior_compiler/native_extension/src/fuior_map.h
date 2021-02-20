@@ -53,7 +53,7 @@ static inline void fuior_map_set(fuior_map *self, const char *key, void *value) 
         item = (fuior_map_item*)malloc(sizeof(fuior_map_item));
         item->next = self->buckets[hash];
         self->buckets[hash] = item;
-        item->key = malloc(strlen(key) + 1);
+        item->key = (char*)malloc(strlen(key) + 1);
         strcpy(item->key, key);
     }
 

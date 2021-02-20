@@ -11,9 +11,8 @@
 #include "fuior_list.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
 #endif
-
 const TSLanguage *tree_sitter_fuior();
 
 static const TSLanguage * fuior_language = NULL;
@@ -233,7 +232,3 @@ void fuior_results_free(fuior_results * results) {
     }
     free(results->warnings);
 }
-
-#ifdef __cplusplus
-}
-#endif

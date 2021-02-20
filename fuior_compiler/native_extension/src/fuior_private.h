@@ -1,8 +1,5 @@
 #ifndef FUIOR_PRIVATE_H
 #define FUIOR_PRIVATE_H
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <tree_sitter/api.h>
 #include "fuior_list.h"
@@ -151,7 +148,4 @@ static inline uint32_t hash(const char * data, size_t length) {
     return hashAddress;
 }
 
-#ifdef __cplusplus
-}
-#endif
 #endif
