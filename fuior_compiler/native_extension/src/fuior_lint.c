@@ -251,7 +251,7 @@ static bool can_cast_to(fuior_type *from, fuior_type *to) {
 }
 
 static void check_animation(fuior_state *state, TSNode node, const char *actor, const char *animation) {
-    char *name = malloc(sizeof(actor) + sizeof("animation_") + 1);
+    char *name = (char*)malloc(sizeof(actor) + sizeof("animation_") + 1);
     strcpy(name, "animation_");
     strcat(name, actor);
     fuior_type *anim_enum = type_from_name(state, name);
@@ -297,7 +297,7 @@ static void typecheck_command(fuior_state *state, TSNode node) {
         fuior_command_arg *argument = NULL;
 
         if (cmd_arg_it) {
-            argument = cmd_arg_it->data;
+            argument = (fuior_command_arg*)cmd_arg_it->data;
             cmd_arg_it = cmd_arg_it->next;
             cmd_arg_count++;
         } else {
@@ -332,7 +332,7 @@ static void typecheck_command(fuior_state *state, TSNode node) {
     }
 
     while (cmd_arg_it) {
-        fuior_command_arg *argument = cmd_arg_it->data;
+        fuior_command_arg *argument = (fuior_command_arg*)cmd_arg_it->data;
         cmd_arg_it = cmd_arg_it->next;
         cmd_arg_count++;
 
