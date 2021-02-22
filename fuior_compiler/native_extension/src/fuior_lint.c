@@ -36,6 +36,11 @@ fuior_command *fuior_command_register(fuior_state *state, const char *name) {
     return cmd;
 }
 
+fuior_type *type_from_name(fuior_state *state, const char *type_name) {
+    // TODO: Handle more complicated strings like A|B or optionals
+    return (fuior_type*)fuior_map_get(&state->named_types, type_name);
+}
+
 static void handle_command(fuior_state *state, TSNode node) {
     int cmd = fuior_get_special_command(state, node, special_commands_lint);
     switch (cmd) {
@@ -77,7 +82,7 @@ static void handle_command(fuior_state *state, TSNode node) {
                 if (var_type) {
                     add_error(arg1, "variable %s already exists", var_name);
                 }
-                var_type = (fuior_type*)fuior_map_get(&state->named_types, type_name);
+                var_type = type_from_name(state, type_name);
                 if (!var_type) {
                     add_error(arg2, "unknown type %s", type_name);
                 }
@@ -124,7 +129,7 @@ static void handle_command(fuior_state *state, TSNode node) {
                     add_error(node, "expected argument type");
                 }
                 if (argname && argtype) {
-                    fuior_type *type = (fuior_type*)fuior_map_get(&state->named_types, argtype);
+                    fuior_type *type = type_from_name(state, argtype);
                     if (type) {
                         fuior_command_arg *arg = fuior_command_arg_new(argname, type);
                         bool add_to_list = true;
@@ -152,6 +157,115 @@ static void handle_command(fuior_state *state, TSNode node) {
     }
 }
 
+static fuior_type *type_of_node(fuior_state *state, TSNode node) {
+    if (ts_node_is_null(node)) return state->type_any;
+
+    TSSymbol symbol = ts_node_symbol(node);
+    if (symbol == sym.boolean) return state->type_boolean;
+    if (symbol == sym.number) return state->type_number;
+
+    if (symbol == sym.string) {
+        fuior_type *typ = fuior_type_new(state, TYPE_STRING_LITERAL);
+        typ->as_string_literal.literal = fuior_string_node_to_string(state, node);
+        return typ;
+    }
+
+    if (symbol == sym.bare_word) {
+        fuior_type *typ = fuior_type_new(state, TYPE_STRING_LITERAL);
+        typ->as_string_literal.literal = fuior_node_to_string(state, node);
+        return typ;
+    }
+
+    if (symbol == sym.paran_expression) {
+        return type_of_node(state, fuior_skip_comments(ts_node_child(node, 0)));
+    }
+
+    if (symbol == sym.identifier) {
+        char *varname = fuior_node_to_string(state, node);
+        fuior_type * typ = (fuior_type*)fuior_map_get(&state->variables, varname);
+        free(varname);
+        return typ ? typ : state->type_any;
+    }
+
+    if (symbol == sym.unary_expression) {
+        // TODO: handle expressions
+        return state->type_any;
+    }
+
+    if (symbol == sym.binary_expression) {
+        // TODO: handle expressions
+        return state->type_any;
+    }
+
+    return state->type_any;
+}
+
+static bool can_cast_to(fuior_type *from, fuior_type *to) {
+    if (from->tag == TYPE_ANY || to->tag == TYPE_ANY) return true;
+
+    if (from->tag == TYPE_UNION) {
+        for (fuior_list_item *it = from->as_op.items.first; it != NULL; it = it->next) {
+            if (!can_cast_to((fuior_type*)it->data, to)) return false;
+        }
+        return true;
+    }
+
+    if (from->tag == TYPE_INTERSECTION) {
+        for (fuior_list_item *it = from->as_op.items.first; it != NULL; it = it->next) {
+            if (can_cast_to((fuior_type*)it->data, to)) return true;
+        }
+        return false;
+    }
+
+    if (to->tag == TYPE_UNION) {
+        for (fuior_list_item *it = to->as_op.items.first; it != NULL; it = it->next) {
+            if (can_cast_to(from, (fuior_type*)it->data)) return true;
+        }
+        return false;
+    }
+
+    if (to->tag == TYPE_INTERSECTION) {
+        for (fuior_list_item *it = to->as_op.items.first; it != NULL; it = it->next) {
+            if (!can_cast_to(to, (fuior_type*)it->data)) return false;
+        }
+        return true;
+    }
+
+    if (from->tag == TYPE_BOOLEAN) return to->tag == TYPE_BOOLEAN;
+    if (from->tag == TYPE_NUMBER) return to->tag == TYPE_NUMBER;
+    if (from->tag == TYPE_NIL) return to->tag == TYPE_NIL;
+    if (from->tag == TYPE_STRING) return to->tag == TYPE_STRING;
+
+    if (from->tag == TYPE_STRING_LITERAL) {
+        if (to->tag == TYPE_STRING) return true;
+        if (to->tag == TYPE_STRING_LITERAL) {
+            return 0 == strcmp(from->as_string_literal.literal, to->as_string_literal.literal);
+        }
+        if (to->tag == TYPE_ENUM) {
+            return fuior_map_get(&to->as_enum.items, from->as_string_literal.literal) != NULL;
+        }
+        return false;
+    }
+
+    return false;
+}
+
+static void check_animation(fuior_state *state, TSNode node, const char *actor, const char *animation) {
+    char *name = malloc(sizeof(actor) + sizeof("animation_") + 1);
+    strcpy(name, "animation_");
+    strcat(name, actor);
+    fuior_type *anim_enum = type_from_name(state, name);
+    free(name);
+
+    if (
+        anim_enum == NULL ||
+        anim_enum->tag != TYPE_ENUM ||
+        fuior_map_get(&anim_enum->as_enum.items, animation) == NULL
+    ) {
+        add_error(node, "character \"%s\" doesn't have an animation named \"%s\"", actor, animation);
+    }
+}
+
 static void typecheck_command(fuior_state *state, TSNode node) {
     char *verb = fuior_node_to_string(state, node);
     fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, verb);
@@ -161,13 +275,162 @@ static void typecheck_command(fuior_state *state, TSNode node) {
         return;
     }
 
+    TSNode parent = ts_node_parent(node);
+
+    fuior_list_item *cmd_arg_it= cmd->args.first;
+    int cmd_arg_count = 0;
+    int arg_count = 0;
+
+    bool is_animate = 0 == strcmp("animate", verb);
+    char * animate_actor = NULL;
+
+    for (
+        TSNode it = ts_node_next_named_sibling(node);
+        !ts_node_is_null(it);
+        it = ts_node_next_named_sibling(it)
+    ) {
+        TSSymbol symbol = ts_node_symbol(it);
+        if (symbol != sym.command_arg) continue;
+
+        arg_count++;
+
+        fuior_command_arg *argument = NULL;
+
+        if (cmd_arg_it) {
+            argument = cmd_arg_it->data;
+            cmd_arg_it = cmd_arg_it->next;
+            cmd_arg_count++;
+        } else {
+            if (cmd->vararg) {
+                argument = cmd->vararg;
+            } else {
+                add_error(it, "command %s only takes %d arguments", verb, cmd_arg_count);
+            }
+        }
+
+        if (argument) {
+            fuior_type *arg_type = type_of_node(state, fuior_skip_comments(ts_node_child(it, 0)));
+            if (!can_cast_to(arg_type, argument->type)) {
+                char *arg_type_name = fuior_type_name(arg_type);
+                char *cmd_arg_type_name = fuior_type_name(argument->type);
+                add_error(
+                    it, "argument #%d(%s) of command %s is of wrong type: expected %s, got %s",
+                    arg_count, argument->name, verb, cmd_arg_type_name, arg_type_name
+                );
+                free(arg_type_name);
+                free(cmd_arg_type_name);
+            }
+
+            if (is_animate && arg_count == 1 && arg_type->tag == TYPE_STRING_LITERAL) {
+                animate_actor = arg_type->as_string_literal.literal;
+            }
+
+            if (is_animate && arg_count == 2 && animate_actor && arg_type->tag == TYPE_STRING_LITERAL) {
+                check_animation(state, it, animate_actor, arg_type->as_string_literal.literal);
+            }
+        }
+    }
+
+    while (cmd_arg_it) {
+        fuior_command_arg *argument = cmd_arg_it->data;
+        cmd_arg_it = cmd_arg_it->next;
+        cmd_arg_count++;
+
+        if (!can_cast_to(state->type_nil, argument->type)) {
+            add_error(parent, "argument #%d(%s) of command %s is not optional", cmd_arg_count, argument->name, verb);
+        }
+    }
+
     free(verb);
 }
 
+static void typecheck_stat_operation(fuior_state *state, TSNode node) {
+    char *stat_name = NULL;
+    char *stat_op = NULL;
+    fuior_type *stat_type = NULL;
+
+    for (
+        TSNode it = ts_node_named_child(node, 0);
+        !ts_node_is_null(it);
+        it = ts_node_next_named_sibling(it)
+    ) {
+        TSSymbol symbol = ts_node_symbol(it);
+        if (symbol == sym.comment) continue;
+
+        if (symbol == sym.stat_lvalue) {
+            stat_name = fuior_node_to_string(state, it);
+            stat_type = (fuior_type*)fuior_map_get(&state->variables, stat_name);
+            if (!stat_type) {
+                add_error(it, "undeclared variable \"%s\"", stat_name);
+                free(stat_name);
+                stat_name = NULL;
+            }
+            continue;
+        }
+
+        if (!stat_name) continue;
+
+        if (symbol == sym.stat_operator) {
+            stat_op = fuior_node_to_string(state, it);
+            if ((0 == strcmp("+", stat_op) || 0 == strcmp("-", stat_op)) && !can_cast_to(state->type_number, stat_type)) {
+                char *type_name = fuior_type_name(stat_type);
+                add_error(it, "cannot do a numeric operation on %s of type %s", stat_name, type_name);
+                free(type_name);
+            }
+
+        } else if (symbol == sym.stat_rvalue) {
+            fuior_type *rvalue_type = type_of_node(state, fuior_skip_comments(ts_node_child(it, 0)));
+            if (!can_cast_to(rvalue_type, stat_type)) {
+                char *stat_type_name = fuior_type_name(stat_type);
+                char *rvalue_type_name = fuior_type_name(rvalue_type);
+                add_error(it, "trying to assign value of incompatible type to %s: expected %s, got %s", stat_name, stat_type_name, rvalue_type_name);
+                free(stat_type_name);
+                free(rvalue_type_name);
+            }
+        }
+    }
+
+    free(stat_name);
+    free(stat_op);
+}
+
+static void typecheck_show_text(fuior_state *state, TSNode node) {
+    char *actor = NULL;
+
+    for (
+        TSNode it = ts_node_named_child(node, 0);
+        !ts_node_is_null(it);
+        it = ts_node_next_named_sibling(it)
+    ) {
+        TSSymbol symbol = ts_node_symbol(it);
+        if (symbol == sym.comment) continue;
+
+        if (symbol == sym.text_actor) {
+            actor = fuior_node_to_string(state, it);
+            if (!fuior_map_get(&state->character_enum->as_enum.items, actor)) {
+                add_error(it, "no such character \"%s\"", actor);
+                free(actor);
+                actor = NULL;
+            }
+        } else if (symbol == sym.text_animation && actor) {
+            char *animation = fuior_node_to_string(state, it);
+            check_animation(state, it, actor, animation);
+            free(animation);
+        }
+    }
+
+    free(actor);
+}
+
 static void scan_for_declarations(fuior_state *state, TSNode node) {
-    if (ts_node_symbol(node) == sym.command_verb) {
+    TSSymbol symbol = ts_node_symbol(node);
+    if (symbol == sym.command_verb) {
         typecheck_command(state, node);
         handle_command(state, node);
+    } else if (symbol == sym.stat_operation) {
+        typecheck_stat_operation(state, node);
+    } else if (symbol == sym.show_text) {
+        typecheck_show_text(state, node);
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
@@ -196,6 +459,9 @@ void fuior_type_clear(fuior_type *type) {
         fuior_map_clear(&type->as_enum.items, false);
     } else if (type->tag == TYPE_UNION || type->tag == TYPE_INTERSECTION) {
         fuior_list_clear_keep_data(&type->as_op.items);
+    } else if (type->tag == TYPE_STRING_LITERAL) {
+        free(type->as_string_literal.literal);
+        type->as_string_literal.literal = NULL;
     }
 }
 
@@ -217,8 +483,19 @@ char *fuior_type_name(fuior_type *type) {
     if (const_name != NULL) {
         return fuior_clone_string(const_name);
     }
+    if (type->tag == TYPE_STRING_LITERAL) {
+        fuior_strlist buffer;
+        fuior_strlist_init(&buffer);
+        fuior_strlist_push(&buffer, "\"");
+        fuior_strlist_push(&buffer, type->as_string_literal.literal);
+        fuior_strlist_push(&buffer, "\"");
+        char *res = fuior_strlist_concat(&buffer);
+        fuior_strlist_clear(&buffer);
+        return res;
+    }
     if (type->tag == TYPE_UNION || type->tag == TYPE_INTERSECTION) {
         fuior_strlist buffer;
+        fuior_strlist_init(&buffer);
         bool first = true;
         const char *sep = type->tag == TYPE_UNION ? " | " : " & ";
         for (fuior_list_item *it = type->as_op.items.first; it; it = it->next) {
@@ -233,4 +510,16 @@ char *fuior_type_name(fuior_type *type) {
         return res;
     }
     return NULL;
+}
+
+void fuior_command_clear(fuior_command *self) {
+    if (self->vararg) {
+        free(self->vararg->name);
+        free(self->vararg);
+        self->vararg = NULL;
+    }
+    for (fuior_list_item *it = self->args.first; it; it = it->next) {
+        free(((fuior_command_arg*)it->data)->name);
+    }
+    fuior_list_clear(&self->args);
 }

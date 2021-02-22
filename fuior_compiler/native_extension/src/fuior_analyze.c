@@ -80,13 +80,8 @@ char * fuior_command_arg_to_string(fuior_state *state, TSNode node) {
         node = ts_node_next_named_sibling(node);
     }
 
-    TSNode child = ts_node_named_child(node, 0);
+    TSNode child = fuior_skip_comments(ts_node_named_child(node, 0));
     TSSymbol symbol = ts_node_symbol(child);
-    while (symbol == sym.comment) {
-        child = ts_node_next_named_sibling(child);
-        symbol = ts_node_symbol(child);
-    }
-
     if (symbol == sym.bare_word) {
         return fuior_node_to_string(state, child);
     } else if (symbol == sym.string) {

@@ -125,29 +125,43 @@ TSParser* fuior_parser_new() {
 fuior_state *fuior_state_new() {
     fuior_state *state = (fuior_state*)calloc(1, sizeof(fuior_state));
 
-    fuior_type *string_type = fuior_type_new(state, TYPE_STRING);
-    fuior_type *any_type = fuior_type_new(state, TYPE_ANY);
-    fuior_map_set(&state->named_types, "string", string_type);
-    fuior_map_set(&state->named_types, "nil", fuior_type_new(state, TYPE_NIL));
-    fuior_map_set(&state->named_types, "boolean", fuior_type_new(state, TYPE_BOOLEAN));
-    fuior_map_set(&state->named_types, "number", fuior_type_new(state, TYPE_NUMBER));
-    fuior_map_set(&state->named_types, "any", any_type);
+    state->type_string = fuior_type_new(state, TYPE_STRING);
+    fuior_map_set(&state->named_types, "string", state->type_string);
+
+    state->type_any = fuior_type_new(state, TYPE_ANY);
+    fuior_map_set(&state->named_types, "any", state->type_any);
+
+    state->type_nil = fuior_type_new(state, TYPE_NIL);
+    fuior_map_set(&state->named_types, "nil", state->type_nil);
+
+    state->type_boolean = fuior_type_new(state, TYPE_BOOLEAN);
+    fuior_map_set(&state->named_types, "boolean", state->type_boolean);
+
+    state->type_number = fuior_type_new(state, TYPE_NUMBER);
+    fuior_map_set(&state->named_types, "number", state->type_number);
 
     fuior_type *varname_type = fuior_type_new(state, TYPE_ENUM);
     varname_type->name = fuior_clone_string("varname");
     fuior_map_set(&state->named_types, "varname", varname_type);
     state->varname_enum = varname_type;
 
+    fuior_type *character_type = fuior_type_new(state, TYPE_ENUM);
+    character_type->name = fuior_clone_string("character");
+    fuior_map_set(&state->named_types, "character", character_type);
+    state->character_enum = character_type;
+
     fuior_command *enum_cmd = fuior_command_register(state, "enum");
-    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", string_type));
-    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item",  string_type));
+    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", state->type_string));
+    fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item",  state->type_string));
+    enum_cmd->vararg = fuior_command_arg_new("...", state->type_any);
 
     fuior_command *declare_cmd_cmd = fuior_command_register(state, "declare_cmd");
-    declare_cmd_cmd->vararg = fuior_command_arg_new("...", any_type);
+    declare_cmd_cmd->vararg = fuior_command_arg_new("...", state->type_any);
 
     fuior_command *declare_var_cmd = fuior_command_register(state, "declare_var");
-    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_name", string_type));
-    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_type", string_type));
+    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_name", state->type_string));
+    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_type", state->type_string));
+    declare_var_cmd->vararg = fuior_command_arg_new("...", state->type_any);
 
     return state;
 }
@@ -161,9 +175,14 @@ void fuior_state_free(fuior_state *state) {
     free(state->intl_namespace);
     free(state);
 
-    // TODO: free commands
+    for (size_t i = 1; i < FUIOR_MAP_BUCKET_COUNT; i++) {
+        for (fuior_map_item *it = state->commands.buckets[i]; it; it = it->next) {
+            fuior_command *cmd = (fuior_command*)it->value;
+            fuior_command_clear(cmd);
+        }
+    }
+    fuior_map_clear(&state->commands, true);
 
-    fuior_map_clear(&state->commands, false);
     fuior_map_clear(&state->variables, false);
     fuior_map_clear(&state->named_types, false);
 

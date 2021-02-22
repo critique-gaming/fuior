@@ -18,6 +18,8 @@ typedef struct {
     fuior_strlist_item * last;
 } fuior_strlist;
 
+#define fuior_strlist_init(list) memset(list, 0, sizeof(fuior_strlist))
+
 static void fuior_strlist_push_nocopy_(fuior_strlist * list, char * data, size_t length) {
     fuior_strlist_item * item = (fuior_strlist_item*)malloc(sizeof(fuior_strlist_item));
     item->data = data;

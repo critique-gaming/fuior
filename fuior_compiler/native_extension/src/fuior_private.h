@@ -24,12 +24,19 @@ struct fuior_state {
     fuior_list types;
 
     struct fuior_type *varname_enum;
+    struct fuior_type *character_enum;
+    struct fuior_type *type_any;
+    struct fuior_type *type_nil;
+    struct fuior_type *type_string;
+    struct fuior_type *type_number;
+    struct fuior_type *type_boolean;
 };
 
 typedef enum fuior_type_tag {
     TYPE_NIL,
     TYPE_NUMBER,
     TYPE_STRING,
+    TYPE_STRING_LITERAL,
     TYPE_BOOLEAN,
     TYPE_ENUM,
     TYPE_ANY,
@@ -47,6 +54,9 @@ typedef struct fuior_type {
         struct {
             fuior_list items;
         } as_op;
+        struct {
+            char *literal;
+        } as_string_literal;
     };
 } fuior_type;
 
@@ -84,6 +94,8 @@ typedef struct fuior_command {
     fuior_list args;
     fuior_command_arg *vararg;
 } fuior_command;
+
+void fuior_command_clear(fuior_command *self);
 
 fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag);
 void fuior_type_clear(fuior_type *type);
@@ -146,6 +158,15 @@ static inline uint32_t hash(const char * data, size_t length) {
         hashAddress = data[i] + (hashAddress << 6) + (hashAddress << 16) - hashAddress;
     }
     return hashAddress;
+}
+
+static inline TSNode fuior_skip_comments(TSNode node) {
+    TSSymbol symbol = ts_node_symbol(node);
+    while (symbol == sym.comment) {
+        node = ts_node_next_named_sibling(node);
+        symbol = ts_node_symbol(node);
+    }
+    return node;
 }
 
 #endif

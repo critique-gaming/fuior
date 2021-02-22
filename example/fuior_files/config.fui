@@ -1,5 +1,5 @@
-enum char alice
-enum char bob
+enum character alice
+enum character bob
 
 enum animation_alice worried
 enum animation_bob idle
@@ -12,6 +12,6 @@ declare_cmd log_var varname varname
 declare_cmd set  varname varname
 declare_cmd unset  varname varname
 
-declare_cmd animate  character char  animation string
+declare_cmd animate  char character  animation string
 
 declare_cmd wait  seconds number

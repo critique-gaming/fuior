@@ -123,5 +123,8 @@
         "assert_unique",
         "fuior_compiler"
     ],
-    "Lua.runtime.version": "LuaJIT"
+    "Lua.runtime.version": "LuaJIT",
+    "C_Cpp.default.includePath": [
+        "${workspaceRoot}/fuior_compiler/native_extension/include"
+    ],
 }
