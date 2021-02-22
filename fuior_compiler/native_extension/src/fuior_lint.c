@@ -160,6 +160,8 @@ static void typecheck_command(fuior_state *state, TSNode node) {
         free(verb);
         return;
     }
+
+    free(verb);
 }
 
 static void scan_for_declarations(fuior_state *state, TSNode node) {
