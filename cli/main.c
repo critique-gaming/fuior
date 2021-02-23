@@ -76,7 +76,7 @@ static char * read_file(FILE *fin, size_t *len) {
         }
         size_t to_read = capacity - length;
         size_t read_bytes = fread(buffer + length, 1, to_read, fin);
-        length += to_read;
+        length += read_bytes;
         if (read_bytes < to_read) {
             break;
         }
