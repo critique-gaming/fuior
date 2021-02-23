@@ -13,6 +13,7 @@
 static void generate_block(fuior_state * state, TSNode node);
 static void generate_expression_container(fuior_state * state, TSNode node);
 static void generate_expression(fuior_state * state, TSNode node);
+static void generate_intl_string(fuior_state * state, TSNode node);
 
 static void generate_debug(fuior_state * state, TSNode node) {
     fuior_strlist_push(&state->output, ts_node_string(node));
@@ -170,6 +171,8 @@ static void generate_expression(fuior_state * state, TSNode node) {
         generate_boolean(state, node);
     } else if (symbol == sym.string) {
         generate_string(state, node);
+    } else if (symbol == sym.intl_string) {
+        generate_intl_string(state, node);
     } else if (symbol == sym.identifier) {
         fuior_strlist_push(&state->output, "fui.var_get(\"");
         generate_identifier(state, node);
@@ -196,6 +199,19 @@ static void generate_text_copy_intl_key(fuior_state * state, TSNode node) {
 static void generate_text_copy(fuior_state * state, TSNode node) {
     fuior_strlist_push(&state->output, "intl(");
     generate_text_copy_intl_key(state, node);
+    fuior_strlist_push(&state->output, ")");
+}
+
+static void generate_intl_string_key(fuior_state * state, TSNode node) {
+    size_t start = ts_node_start_byte(node) + 2;
+    size_t end = ts_node_end_byte(node) - 1;
+    uint32_t text_hash = hash(state->input + start, (end - start));
+    fuior_strlist_printf(&state->output, "\"%s%06x\"", state->intl_prefix, (unsigned)text_hash & 0xffffff);
+}
+
+static void generate_intl_string(fuior_state * state, TSNode node) {
+    fuior_strlist_push(&state->output, "intl(");
+    generate_intl_string_key(state, node);
     fuior_strlist_push(&state->output, ")");
 }
 
@@ -467,7 +483,8 @@ static void generate_block(fuior_state * state, TSNode node) {
 }
 
 static void generate_intl_strings(fuior_state *state, TSNode node) {
-    if (ts_node_symbol(node) == sym.text_copy) {
+    TSSymbol symbol = ts_node_symbol(node);
+    if (symbol == sym.text_copy) {
         generate_indent(state);
         fuior_strlist_push(&state->output, "[");
         generate_text_copy_intl_key(state, node);
@@ -475,6 +492,17 @@ static void generate_intl_strings(fuior_state *state, TSNode node) {
         fuior_strlist_push(&state->output, "] = \"");
         size_t start = ts_node_start_byte(node);
         size_t end = ts_node_end_byte(node);
+        generate_escaped_string(state, state->input + start, (end - start));
+        fuior_strlist_push(&state->output, "\",\n");
+
+    } else if (symbol == sym.intl_string) {
+        generate_indent(state);
+        fuior_strlist_push(&state->output, "[");
+        generate_intl_string_key(state, node);
+
+        fuior_strlist_push(&state->output, "] = \"");
+        size_t start = ts_node_start_byte(node) + 2;
+        size_t end = ts_node_end_byte(node) - 1;
         generate_escaped_string(state, state->input + start, (end - start));
         fuior_strlist_push(&state->output, "\",\n");
     }

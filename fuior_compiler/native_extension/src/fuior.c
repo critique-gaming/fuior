@@ -82,7 +82,7 @@ TSParser* fuior_parser_new() {
     if (!fuior_language) {
       fuior_language = tree_sitter_fuior();
 
-      #define fetch_symbol(symbol) sym. symbol = ts_language_symbol_for_name(fuior_language, #symbol)
+      #define fetch_symbol(symbol) sym. symbol = ts_language_symbol_for_name(fuior_language, #symbol, strlen(#symbol), true)
 
       fetch_symbol(ERROR);
       fetch_symbol(comment);
@@ -92,6 +92,7 @@ TSParser* fuior_parser_new() {
       fetch_symbol(bare_word);
       fetch_symbol(number);
       fetch_symbol(string);
+      fetch_symbol(intl_string);
       fetch_symbol(boolean);
       fetch_symbol(identifier);
       fetch_symbol(unary_expression);

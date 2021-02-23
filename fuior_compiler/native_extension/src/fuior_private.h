@@ -110,6 +110,7 @@ typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol bare_word;
     TSSymbol number;
     TSSymbol string;
+    TSSymbol intl_string;
     TSSymbol boolean;
     TSSymbol identifier;
     TSSymbol unary_expression;

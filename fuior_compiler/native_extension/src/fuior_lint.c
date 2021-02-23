@@ -163,6 +163,7 @@ static fuior_type *type_of_node(fuior_state *state, TSNode node) {
     TSSymbol symbol = ts_node_symbol(node);
     if (symbol == sym.boolean) return state->type_boolean;
     if (symbol == sym.number) return state->type_number;
+    if (symbol == sym.intl_string) return state->type_string;
 
     if (symbol == sym.string) {
         fuior_type *typ = fuior_type_new(state, TYPE_STRING_LITERAL);
