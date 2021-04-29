@@ -71,8 +71,8 @@ Expressions are computed values. Expressions can be:
     ```
 * Comparison operations (`<`, `>`, `<=`, `>=`, `=`, `!=` (not equal)). These resolve to a boolean (`true`/`false`) value
     ```fuior
-    my_var = 12 < 13  # Resolves to true
-    my_var = 12 != 12  # Resolves to false
+    my_var = 12 < 13  # my_var becomes true
+    my_var = 12 != 12  # my_var becomes false
     ```
 * Boolean logic expressions (`and`, `or`, `not`)
     ```fuior
