@@ -2,6 +2,7 @@
 #define FUIOR_PRIVATE_H
 
 #include <tree_sitter/api.h>
+#include "fuior.h"
 #include "fuior_list.h"
 #include "fuior_map.h"
 #include "fuior_strlist.h"
