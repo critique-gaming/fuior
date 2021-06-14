@@ -38,6 +38,14 @@ fuior_command *fuior_command_register(fuior_state *state, const char *name) {
 
 fuior_type *type_from_name(fuior_state *state, const char *type_name) {
     // TODO: Handle more complicated strings like A|B or optionals
+    if (type_name[0] == '?') {
+      fuior_type *root_type = type_from_name(state, type_name + 1);
+      if (!root_type) return NULL;
+      fuior_type* t = fuior_type_new(state, TYPE_UNION);
+      fuior_list_push(&t->as_op.items, root_type);
+      fuior_list_push(&t->as_op.items, state->type_nil);
+      return t;
+    }
     return (fuior_type*)fuior_map_get(&state->named_types, type_name);
 }
 
@@ -500,8 +508,9 @@ char *fuior_type_name(fuior_type *type) {
         bool first = true;
         const char *sep = type->tag == TYPE_UNION ? " | " : " & ";
         for (fuior_list_item *it = type->as_op.items.first; it; it = it->next) {
-            if (!first) {
+            if (first) {
                 first = false;
+            } else {
                 fuior_strlist_push(&buffer, sep);
             }
             fuior_strlist_push_nocopy(&buffer, fuior_type_name((fuior_type*)it->data));
