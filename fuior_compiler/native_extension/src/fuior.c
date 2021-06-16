@@ -17,6 +17,7 @@ const TSLanguage *tree_sitter_fuior();
 
 static const TSLanguage * fuior_language = NULL;
 fuior_tree_sitter_symbols_t fuior_tree_sitter_symbols;
+fuior_tree_sitter_fields_t fuior_tree_sitter_fields;
 
 int fuior_get_special_command(fuior_state * state, TSNode command_verb, const char * const *special_commands) {
     size_t start = ts_node_start_byte(command_verb);
@@ -80,62 +81,83 @@ void fuior_check_syntax(fuior_state *state, fuior_source_file *source_file) {
 
 TSParser* fuior_parser_new() {
     if (!fuior_language) {
-      fuior_language = tree_sitter_fuior();
+        fuior_language = tree_sitter_fuior();
 
-      #define fetch_symbol(symbol) sym. symbol = ts_language_symbol_for_name(fuior_language, #symbol, strlen(#symbol), true)
+        #define fetch_symbol(symbol) sym. symbol = ts_language_symbol_for_name(fuior_language, #symbol, strlen(#symbol), true)
 
-      fetch_symbol(ERROR);
-      fetch_symbol(comment);
-      fetch_symbol(command_statement);
-      fetch_symbol(command_verb);
-      fetch_symbol(command_arg);
-      fetch_symbol(bare_word);
-      fetch_symbol(number);
-      fetch_symbol(string);
-      fetch_symbol(intl_string);
-      fetch_symbol(boolean);
-      fetch_symbol(identifier);
-      fetch_symbol(type_identifier);
-      fetch_symbol(function_call);
-      fetch_symbol(unary_expression);
-      fetch_symbol(binary_expression);
-      fetch_symbol(paran_expression);
-      fetch_symbol(choose_statement);
-      fetch_symbol(choice);
-      fetch_symbol(choice_condition);
-      fetch_symbol(choice_meta);
-      fetch_symbol(block);
-      fetch_symbol(text_copy);
-      fetch_symbol(text_statement);
-      fetch_symbol(text_actor);
-      fetch_symbol(text_animation);
-      fetch_symbol(assign_statement);
-      fetch_symbol(assign_lvalue);
-      fetch_symbol(assign_operator);
-      fetch_symbol(assign_rvalue);
-      fetch_symbol(if_statement);
-      fetch_symbol(condition);
-      fetch_symbol(if_clause);
-      fetch_symbol(elseif_clause);
-      fetch_symbol(else_clause);
-      fetch_symbol(arg_definition);
-      fetch_symbol(arg_type);
-      fetch_symbol(arg_name);
-      fetch_symbol(arg_definition_list);
-      fetch_symbol(command_signature);
-      fetch_symbol(command_name);
-      fetch_symbol(return_type);
-      fetch_symbol(define_command_statement);
-      fetch_symbol(declare_command_statement);
-      fetch_symbol(arg_list);
-      fetch_symbol(declare_var_decorator);
-      fetch_symbol(decorator_name);
-      fetch_symbol(declare_var_statement);
-      fetch_symbol(var_name);
-      fetch_symbol(var_type);
-      fetch_symbol(var_default_value);
-      fetch_symbol(return_statement);
-      fetch_symbol(return_value);
+        fetch_symbol(ERROR);
+        fetch_symbol(comment);
+        fetch_symbol(command_statement);
+        fetch_symbol(command_verb);
+        fetch_symbol(command_arg);
+        fetch_symbol(bare_word);
+        fetch_symbol(number);
+        fetch_symbol(string);
+        fetch_symbol(intl_string);
+        fetch_symbol(boolean);
+        fetch_symbol(identifier);
+        fetch_symbol(type_identifier);
+        fetch_symbol(function_call);
+        fetch_symbol(unary_expression);
+        fetch_symbol(binary_expression);
+        fetch_symbol(paran_expression);
+        fetch_symbol(choose_statement);
+        fetch_symbol(choice);
+        fetch_symbol(choice_condition);
+        fetch_symbol(choice_meta);
+        fetch_symbol(block);
+        fetch_symbol(text_copy);
+        fetch_symbol(text_statement);
+        fetch_symbol(text_actor);
+        fetch_symbol(text_animation);
+        fetch_symbol(assign_statement);
+        fetch_symbol(assign_lvalue);
+        fetch_symbol(assign_operator);
+        fetch_symbol(assign_rvalue);
+        fetch_symbol(if_statement);
+        fetch_symbol(condition);
+        fetch_symbol(if_clause);
+        fetch_symbol(elseif_clause);
+        fetch_symbol(else_clause);
+        fetch_symbol(arg_definition);
+        fetch_symbol(arg_type);
+        fetch_symbol(arg_name);
+        fetch_symbol(arg_definition_list);
+        fetch_symbol(command_signature);
+        fetch_symbol(command_name);
+        fetch_symbol(return_type);
+        fetch_symbol(define_command_statement);
+        fetch_symbol(declare_command_statement);
+        fetch_symbol(arg_list);
+        fetch_symbol(declare_var_decorator);
+        fetch_symbol(decorator_name);
+        fetch_symbol(declare_var_statement);
+        fetch_symbol(var_name);
+        fetch_symbol(var_type);
+        fetch_symbol(var_default_value);
+        fetch_symbol(return_statement);
+        fetch_symbol(return_value);
+
+        #define fetch_field(field) fld. field = ts_language_field_id_for_name(fuior_language, #field, strlen(#field))
+        #define fetch_field_(field) fld. field ## _ = ts_language_field_id_for_name(fuior_language, #field, strlen(#field))
+
+        fetch_field(name);
+        fetch_field(type);
+        fetch_field(default_value);
+        fetch_field(arguments);
+        fetch_field(return_type);
+        fetch_field(signature);
+        fetch_field(body);
+        fetch_field(verb);
+        fetch_field(actor);
+        fetch_field(animation);
+        fetch_field(copy);
+        fetch_field(arg_list);
+        fetch_field(condition);
+        fetch_field(lvalue);
+        fetch_field_(operator);
+        fetch_field(rvalue);
+        fetch_field(return_value);
     }
 
     TSParser *parser = ts_parser_new();

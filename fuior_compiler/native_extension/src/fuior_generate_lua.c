@@ -457,6 +457,25 @@ static void generate_if_statement(fuior_state * state, TSNode node) {
     fuior_strlist_push(&state->output, "end\n");
 }
 
+static void generate_return_statement(fuior_state * state, TSNode node) {
+    generate_indent(state);
+    fuior_strlist_push(&state->output, "return");
+
+    bool first = true;
+    for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+
+        TSSymbol symbol = ts_node_symbol(child);
+        if (symbol == sym.return_value) {
+            fuior_strlist_push(&state->output, first ? " " : ", ");
+            generate_expression_container(state, child);
+            first = false;
+        }
+    }
+
+    fuior_strlist_push(&state->output, "\n");
+}
+
 static void generate_block(fuior_state * state, TSNode node) {
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_named_child(node, i);
@@ -473,6 +492,8 @@ static void generate_block(fuior_state * state, TSNode node) {
             generate_choose_statement(state, child);
         } else if (symbol == sym.if_statement) {
             generate_if_statement(state, child);
+        } else if (symbol == sym.return_statement) {
+            generate_return_statement(state, child);
         } else {
             add_error(node, "Unimplemented generation");
             generate_indent(state);

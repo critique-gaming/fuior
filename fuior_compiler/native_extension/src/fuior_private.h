@@ -160,6 +160,29 @@ typedef struct fuior_tree_sitter_symbols_t {
 extern fuior_tree_sitter_symbols_t fuior_tree_sitter_symbols;
 #define sym fuior_tree_sitter_symbols
 
+typedef struct fuior_tree_sitter_fields_t {
+    TSFieldId name;
+    TSFieldId type;
+    TSFieldId default_value;
+    TSFieldId arguments;
+    TSFieldId return_type;
+    TSFieldId signature;
+    TSFieldId body;
+    TSFieldId verb;
+    TSFieldId actor;
+    TSFieldId animation;
+    TSFieldId copy;
+    TSFieldId arg_list;
+    TSFieldId condition;
+    TSFieldId lvalue;
+    TSFieldId operator_;
+    TSFieldId rvalue;
+    TSFieldId return_value;
+} fuior_tree_sitter_fields_t;
+
+extern fuior_tree_sitter_fields_t fuior_tree_sitter_fields;
+#define fld fuior_tree_sitter_fields
+
 #define CMD_INTL_NAMESPACE 0
 #define CMD_INTL_PREFIX 1
 #define CMD_COUNT 2
