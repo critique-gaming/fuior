@@ -161,23 +161,25 @@ extern fuior_tree_sitter_symbols_t fuior_tree_sitter_symbols;
 #define sym fuior_tree_sitter_symbols
 
 typedef struct fuior_tree_sitter_fields_t {
-    TSFieldId name;
-    TSFieldId type;
-    TSFieldId default_value;
-    TSFieldId arguments;
-    TSFieldId return_type;
-    TSFieldId signature;
-    TSFieldId body;
-    TSFieldId verb;
     TSFieldId actor;
     TSFieldId animation;
-    TSFieldId copy;
     TSFieldId arg_list;
+    TSFieldId arguments;
+    TSFieldId block;
+    TSFieldId body;
     TSFieldId condition;
+    TSFieldId copy;
+    TSFieldId default_value;
     TSFieldId lvalue;
+    TSFieldId meta;
+    TSFieldId name;
     TSFieldId operator_;
-    TSFieldId rvalue;
+    TSFieldId return_type;
     TSFieldId return_value;
+    TSFieldId rvalue;
+    TSFieldId signature;
+    TSFieldId type;
+    TSFieldId verb;
 } fuior_tree_sitter_fields_t;
 
 extern fuior_tree_sitter_fields_t fuior_tree_sitter_fields;

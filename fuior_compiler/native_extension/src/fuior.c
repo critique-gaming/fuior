@@ -141,23 +141,25 @@ TSParser* fuior_parser_new() {
         #define fetch_field(field) fld. field = ts_language_field_id_for_name(fuior_language, #field, strlen(#field))
         #define fetch_field_(field) fld. field ## _ = ts_language_field_id_for_name(fuior_language, #field, strlen(#field))
 
-        fetch_field(name);
-        fetch_field(type);
-        fetch_field(default_value);
-        fetch_field(arguments);
-        fetch_field(return_type);
-        fetch_field(signature);
-        fetch_field(body);
-        fetch_field(verb);
         fetch_field(actor);
         fetch_field(animation);
-        fetch_field(copy);
         fetch_field(arg_list);
+        fetch_field(arguments);
+        fetch_field(block);
+        fetch_field(body);
         fetch_field(condition);
+        fetch_field(copy);
+        fetch_field(default_value);
         fetch_field(lvalue);
+        fetch_field(meta);
+        fetch_field(name);
         fetch_field_(operator);
-        fetch_field(rvalue);
+        fetch_field(return_type);
         fetch_field(return_value);
+        fetch_field(rvalue);
+        fetch_field(signature);
+        fetch_field(type);
+        fetch_field(verb);
     }
 
     TSParser *parser = ts_parser_new();

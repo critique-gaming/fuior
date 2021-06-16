@@ -267,21 +267,43 @@ static void generate_choose_statement(fuior_state * state, TSNode node) {
         TSSymbol choice_symbol = ts_node_symbol(choice_node);
         if (choice_symbol == sym.choice) {
             generate_indent(state);
-            int has_condition = false;
-            for (uint32_t j = 0, m = ts_node_named_child_count(choice_node); j < m; j += 1) {
-                TSNode text_copy_node = ts_node_named_child(choice_node, j);
-                TSSymbol text_copy_symbol = ts_node_symbol(text_copy_node);
-                if (text_copy_symbol == sym.choice_condition) {
-                    has_condition = 1;
-                    fuior_strlist_push(&state->output, "(");
-                    generate_expression_container(state, text_copy_node);
-                    fuior_strlist_push(&state->output, ") and ");
-                }
-                if (text_copy_symbol == sym.text_copy) {
-                    generate_text_copy(state, text_copy_node);
-                }
+
+            TSNode text_copy_node = ts_node_child_by_field_id(choice_node, fld.copy);
+            TSNode condition_node = ts_node_child_by_field_id(choice_node, fld.condition);
+            TSNode meta_node = ts_node_child_by_field_id(choice_node, fld.meta);
+            if (!ts_node_is_null(meta_node)) {
+                meta_node = ts_node_child_by_field_id(meta_node, fld.block);
             }
-            if (has_condition) { fuior_strlist_push(&state->output, " or nil"); }
+
+            if (!ts_node_is_null(condition_node)) {
+                fuior_strlist_push(&state->output, "(");
+                generate_expression_container(state, condition_node);
+                fuior_strlist_push(&state->output, ") and ");
+            }
+
+            if (!ts_node_is_null(meta_node)) {
+                fuior_strlist_push(&state->output, "fui.choice_meta(");
+            }
+
+            if (!ts_node_is_null(text_copy_node)) {
+                generate_text_copy(state, text_copy_node);
+            } else {
+                fuior_strlist_push(&state->output, "nil");
+            }
+
+            if (!ts_node_is_null(meta_node)) {
+                fuior_strlist_push(&state->output, ", function ()\n");
+                state->indent += 1;
+                generate_block(state, meta_node);
+                state->indent -= 1;
+                generate_indent(state);
+                fuior_strlist_push(&state->output, "end)");
+            }
+
+            if (!ts_node_is_null(condition_node)) {
+                fuior_strlist_push(&state->output, " or nil");
+            }
+
             fuior_strlist_push(&state->output, ",\n");
         }
     }
