@@ -353,10 +353,10 @@ static void typecheck_command(fuior_state *state, TSNode node) {
     free(verb);
 }
 
-static void typecheck_stat_operation(fuior_state *state, TSNode node) {
-    char *stat_name = NULL;
-    char *stat_op = NULL;
-    fuior_type *stat_type = NULL;
+static void typecheck_assign_statement(fuior_state *state, TSNode node) {
+    char *assign_name = NULL;
+    char *assign_op = NULL;
+    fuior_type *assign_type = NULL;
 
     for (
         TSNode it = ts_node_named_child(node, 0);
@@ -366,44 +366,44 @@ static void typecheck_stat_operation(fuior_state *state, TSNode node) {
         TSSymbol symbol = ts_node_symbol(it);
         if (symbol == sym.comment) continue;
 
-        if (symbol == sym.stat_lvalue) {
-            stat_name = fuior_node_to_string(state, it);
-            stat_type = (fuior_type*)fuior_map_get(&state->variables, stat_name);
-            if (!stat_type) {
-                add_error(it, "undeclared variable \"%s\"", stat_name);
-                free(stat_name);
-                stat_name = NULL;
+        if (symbol == sym.assign_lvalue) {
+            assign_name = fuior_node_to_string(state, it);
+            assign_type = (fuior_type*)fuior_map_get(&state->variables, assign_name);
+            if (!assign_type) {
+                add_error(it, "undeclared variable \"%s\"", assign_name);
+                free(assign_name);
+                assign_name = NULL;
             }
             continue;
         }
 
-        if (!stat_name) continue;
+        if (!assign_name) continue;
 
-        if (symbol == sym.stat_operator) {
-            stat_op = fuior_node_to_string(state, it);
-            if ((0 == strcmp("+", stat_op) || 0 == strcmp("-", stat_op)) && !can_cast_to(state->type_number, stat_type)) {
-                char *type_name = fuior_type_name(stat_type);
-                add_error(it, "cannot do a numeric operation on %s of type %s", stat_name, type_name);
+        if (symbol == sym.assign_operator) {
+            assign_op = fuior_node_to_string(state, it);
+            if ((0 == strcmp("+", assign_op) || 0 == strcmp("-", assign_op)) && !can_cast_to(state->type_number, assign_type)) {
+                char *type_name = fuior_type_name(assign_type);
+                add_error(it, "cannot do a numeric operation on %s of type %s", assign_name, type_name);
                 free(type_name);
             }
 
-        } else if (symbol == sym.stat_rvalue) {
+        } else if (symbol == sym.assign_rvalue) {
             fuior_type *rvalue_type = type_of_node(state, fuior_skip_comments(ts_node_child(it, 0)));
-            if (!can_cast_to(rvalue_type, stat_type)) {
-                char *stat_type_name = fuior_type_name(stat_type);
+            if (!can_cast_to(rvalue_type, assign_type)) {
+                char *assign_type_name = fuior_type_name(assign_type);
                 char *rvalue_type_name = fuior_type_name(rvalue_type);
-                add_error(it, "trying to assign value of incompatible type to %s: expected %s, got %s", stat_name, stat_type_name, rvalue_type_name);
-                free(stat_type_name);
+                add_error(it, "trying to assign value of incompatible type to %s: expected %s, got %s", assign_name, assign_type_name, rvalue_type_name);
+                free(assign_type_name);
                 free(rvalue_type_name);
             }
         }
     }
 
-    free(stat_name);
-    free(stat_op);
+    free(assign_name);
+    free(assign_op);
 }
 
-static void typecheck_show_text(fuior_state *state, TSNode node) {
+static void typecheck_text_statement(fuior_state *state, TSNode node) {
     char *actor = NULL;
 
     for (
@@ -436,10 +436,10 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
     if (symbol == sym.command_verb) {
         typecheck_command(state, node);
         handle_command(state, node);
-    } else if (symbol == sym.stat_operation) {
-        typecheck_stat_operation(state, node);
-    } else if (symbol == sym.show_text) {
-        typecheck_show_text(state, node);
+    } else if (symbol == sym.assign_statement) {
+        typecheck_assign_statement(state, node);
+    } else if (symbol == sym.text_statement) {
+        typecheck_text_statement(state, node);
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {

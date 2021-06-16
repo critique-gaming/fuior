@@ -84,7 +84,7 @@ static inline char *fuior_node_to_string_(fuior_state *state, TSNode node, size_
 #define fuior_node_to_string(state, node) fuior_node_to_string_(state, node, 0, 0)
 #define fuior_string_node_to_string(state, node) fuior_node_to_string_(state, node, 1, 1)
 
-static inline fuior_command_arg *fuior_command_arg_new(char *name, fuior_type *type) {
+static inline fuior_command_arg *fuior_command_arg_new(const char *name, fuior_type *type) {
     fuior_command_arg *arg = (fuior_command_arg*)malloc(sizeof(fuior_command_arg));
     arg->type = type;
     arg->name = fuior_clone_string(name);
@@ -105,7 +105,7 @@ char *fuior_type_name(fuior_type *type);
 typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol ERROR;
     TSSymbol comment;
-    TSSymbol command;
+    TSSymbol command_statement;
     TSSymbol command_verb;
     TSSymbol command_arg;
     TSSymbol bare_word;
@@ -114,26 +114,47 @@ typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol intl_string;
     TSSymbol boolean;
     TSSymbol identifier;
+    TSSymbol type_identifier;
+    TSSymbol function_call;
     TSSymbol unary_expression;
     TSSymbol binary_expression;
     TSSymbol paran_expression;
     TSSymbol choose_statement;
     TSSymbol choice;
     TSSymbol choice_condition;
+    TSSymbol choice_meta;
     TSSymbol block;
     TSSymbol text_copy;
-    TSSymbol show_text;
+    TSSymbol text_statement;
     TSSymbol text_actor;
     TSSymbol text_animation;
-    TSSymbol stat_operation;
-    TSSymbol stat_lvalue;
-    TSSymbol stat_operator;
-    TSSymbol stat_rvalue;
+    TSSymbol assign_statement;
+    TSSymbol assign_lvalue;
+    TSSymbol assign_operator;
+    TSSymbol assign_rvalue;
     TSSymbol if_statement;
     TSSymbol condition;
     TSSymbol if_clause;
     TSSymbol elseif_clause;
     TSSymbol else_clause;
+    TSSymbol arg_definition;
+    TSSymbol arg_type;
+    TSSymbol arg_name;
+    TSSymbol arg_definition_list;
+    TSSymbol command_signature;
+    TSSymbol command_name;
+    TSSymbol return_type;
+    TSSymbol define_command_statement;
+    TSSymbol declare_command_statement;
+    TSSymbol arg_list;
+    TSSymbol declare_var_decorator;
+    TSSymbol decorator_name;
+    TSSymbol declare_var_statement;
+    TSSymbol var_name;
+    TSSymbol var_type;
+    TSSymbol var_default_value;
+    TSSymbol return_statement;
+    TSSymbol return_value;
 } fuior_tree_sitter_symbols_t;
 
 extern fuior_tree_sitter_symbols_t fuior_tree_sitter_symbols;

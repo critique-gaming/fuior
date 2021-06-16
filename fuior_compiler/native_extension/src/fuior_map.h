@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define FUIOR_MAP_HASH_BITS 8
 #define FUIOR_MAP_HASH_ROTATE_BITS 3

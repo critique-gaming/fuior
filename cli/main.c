@@ -11,12 +11,12 @@
 
 static char *path_dirname(const char *path, size_t extra_space) {
     size_t n = strlen(path);
-    char *path_copy = malloc(n + 1);
+    char *path_copy = (char*)malloc(n + 1);
     strncpy(path_copy, path, n + 1);
 
     const char *dn = dirname(path_copy);
     size_t m = strlen(dn);
-    char *dn_copy = malloc(m + extra_space + 1);
+    char *dn_copy = (char*)malloc(m + extra_space + 1);
     strncpy(dn_copy, dn, m + extra_space + 1);
 
     free(path_copy);
@@ -44,7 +44,7 @@ FILE *open_config(const char *path, char **out_path) {
         fin = open_config(dir, out_path);
         free(dir);
     } else {
-        char *out = malloc(n + strlen(CONFIG_SUFFIX) + 1);
+        char *out = (char*)malloc(n + strlen(CONFIG_SUFFIX) + 1);
         strcpy(out, dir);
         *out_path = out;
     }
@@ -57,7 +57,7 @@ static char * read_file(FILE *fin, size_t *len) {
         size_t fin_len = ftell(fin);
         fseek(fin, 0, SEEK_SET);
 
-        char * buffer = malloc(fin_len);
+        char * buffer = (char*)malloc(fin_len);
         fread(buffer, 1, fin_len, fin);
         fclose(fin);
 
@@ -67,12 +67,12 @@ static char * read_file(FILE *fin, size_t *len) {
 
     size_t capacity = 512;
     size_t length = 0;
-    char * buffer = malloc(capacity);
+    char * buffer = (char*)malloc(capacity);
 
     while (true) {
         if (length == capacity) {
             capacity = capacity * 2;
-            buffer = realloc(buffer, capacity);
+            buffer = (char*)realloc(buffer, capacity);
         }
         size_t to_read = capacity - length;
         size_t read_bytes = fread(buffer + length, 1, to_read, fin);
