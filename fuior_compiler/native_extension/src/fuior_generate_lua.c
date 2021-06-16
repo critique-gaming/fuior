@@ -498,6 +498,53 @@ static void generate_return_statement(fuior_state * state, TSNode node) {
     fuior_strlist_push(&state->output, "\n");
 }
 
+static void generate_declare_var_statement(fuior_state * state, TSNode node) {
+    TSNode name_node = ts_node_child_by_field_id(node, fld.name);
+    TSNode default_value_node = ts_node_child_by_field_id(node, fld.default_value);
+    if (ts_node_is_null(name_node)) {
+        add_error(node, "Invalid variable declaration");
+        return;
+    }
+
+    generate_indent(state);
+    fuior_strlist_push(&state->output, "fui.declare_var(\"");
+    generate_identifier(state, name_node);
+    fuior_strlist_push(&state->output, "\", ");
+    if (ts_node_is_null(default_value_node)) {
+        fuior_strlist_push(&state->output, "nil");
+    } else {
+        generate_expression_container(state, default_value_node);
+    }
+
+    bool first = true;
+    for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+
+        TSSymbol symbol = ts_node_symbol(child);
+        if (symbol == sym.declare_var_decorator) {
+            TSNode decorator_name_node = ts_node_child_by_field_id(child, fld.name);
+            if (ts_node_is_null(decorator_name_node)) continue;
+
+            fuior_strlist_push(&state->output, first ? ", [[\"" : ", [\"");
+            first = false;
+            generate_identifier(state, decorator_name_node);
+            fuior_strlist_push(&state->output, "\"");
+
+            TSNode arg_list_node = ts_node_child_by_field_id(child, fld.arg_list);
+            for (uint32_t j = 0, m = ts_node_named_child_count(arg_list_node); j < m; j += 1) {
+                TSNode arg_node = ts_node_named_child(arg_list_node, j);
+                fuior_strlist_push(&state->output, ", ");
+                generate_expression(state, arg_node);
+            }
+
+            fuior_strlist_push(&state->output, "]");
+        }
+    }
+
+    if (!first) { fuior_strlist_push(&state->output, "]"); }
+    fuior_strlist_push(&state->output, ")\n");
+}
+
 static void generate_block(fuior_state * state, TSNode node) {
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_named_child(node, i);
@@ -514,6 +561,8 @@ static void generate_block(fuior_state * state, TSNode node) {
             generate_choose_statement(state, child);
         } else if (symbol == sym.if_statement) {
             generate_if_statement(state, child);
+        } else if (symbol == sym.declare_var_statement) {
+            generate_declare_var_statement(state, child);
         } else if (symbol == sym.return_statement) {
             generate_return_statement(state, child);
         } else {

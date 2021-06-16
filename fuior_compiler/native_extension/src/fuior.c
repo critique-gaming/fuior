@@ -96,11 +96,14 @@ TSParser* fuior_parser_new() {
         fetch_symbol(intl_string);
         fetch_symbol(boolean);
         fetch_symbol(identifier);
-        fetch_symbol(type_identifier);
         fetch_symbol(function_call);
         fetch_symbol(unary_expression);
         fetch_symbol(binary_expression);
         fetch_symbol(paran_expression);
+        fetch_symbol(type_identifier);
+        fetch_symbol(unary_type_expression);
+        fetch_symbol(binary_type_expression);
+        fetch_symbol(paran_type_expression);
         fetch_symbol(choose_statement);
         fetch_symbol(choice);
         fetch_symbol(choice_condition);
@@ -203,11 +206,6 @@ fuior_state *fuior_state_new() {
 
     fuior_command *declare_cmd_cmd = fuior_command_register(state, "declare_cmd");
     declare_cmd_cmd->vararg = fuior_command_arg_new("...", state->type_any);
-
-    fuior_command *declare_var_cmd = fuior_command_register(state, "declare_var");
-    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_name", state->type_string));
-    fuior_list_push(&declare_var_cmd->args, fuior_command_arg_new("var_type", state->type_string));
-    declare_var_cmd->vararg = fuior_command_arg_new("...", state->type_any);
 
     return state;
 }

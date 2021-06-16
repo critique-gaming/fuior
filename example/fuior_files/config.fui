@@ -4,8 +4,8 @@ enum character bob
 enum animation_alice worried
 enum animation_bob idle
 
-declare_var some_stat number 0
-declare_var some_flag boolean false
+var some_stat: number @min(-10) @max(10) = 0
+var some_flag: boolean = false
 
 declare_cmd log   "..." any
 declare_cmd log_var varname varname

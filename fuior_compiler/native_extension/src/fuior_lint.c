@@ -13,9 +13,7 @@
 const char * const special_commands_lint[] = {
     #define CMD_ENUM 0
     "enum",
-    #define CMD_DECLARE_VAR 1
-    "declare_var",
-    #define CMD_DECLARE_CMD 2
+    #define CMD_DECLARE_CMD 1
     "declare_cmd",
     NULL
 };
@@ -49,6 +47,60 @@ fuior_type *type_from_name(fuior_state *state, const char *type_name) {
     return (fuior_type*)fuior_map_get(&state->named_types, type_name);
 }
 
+fuior_type *type_from_node(fuior_state *state, TSNode node) {
+    if (ts_node_is_null(node)) {
+        add_error(node, "Invalid type expression");
+        return NULL;
+    }
+
+    TSSymbol symbol = ts_node_symbol(node);
+    if (symbol == sym.type_identifier) {
+        char *type_name = fuior_node_to_string(state, node);
+        fuior_type * type = (fuior_type*)fuior_map_get(&state->named_types, type_name);
+        if (!type) { add_error(node, "Undefined type \"%s\"", type_name); }
+        free(type_name);
+        return type;
+    }
+
+    if (symbol == sym.unary_type_expression) {
+        TSNode op_node = ts_node_child(node, 0);
+        TSNode expr_node = ts_node_child(node, 1);
+        if (ts_node_is_null(op_node)) {
+            add_error(node, "Invalid unary type expression");
+            return NULL;
+        }
+        fuior_type * t = NULL;
+        char * op = fuior_node_to_string(state, op_node);
+        if (0 == strcmp(op, "?")) {
+            fuior_type *child_type = type_from_node(state, expr_node);
+            if (child_type) {
+                t = fuior_type_new(state, TYPE_UNION);
+                fuior_list_push(&t->as_op.items, child_type);
+                fuior_list_push(&t->as_op.items, state->type_nil);
+            }
+        } else {
+            add_error(op_node, "Unknown unary type operator \"%s\"", op);
+        }
+        free(op);
+        return t;
+    }
+
+    // TODO: binary expressions and string literals
+
+    add_error(node, "Unimplemented type expression");
+    return NULL;
+}
+
+static fuior_type *type_from_container(fuior_state * state, TSNode node) {
+    TSNode child = ts_node_named_child(node, 0);
+    TSSymbol symbol = ts_node_symbol(child);
+    while (symbol == sym.comment) {
+        child = ts_node_next_named_sibling(child);
+        symbol = ts_node_symbol(child);
+    }
+    return type_from_node(state, child);
+}
+
 static void handle_command(fuior_state *state, TSNode node) {
     int cmd = fuior_get_special_command(state, node, special_commands_lint);
     switch (cmd) {
@@ -76,31 +128,6 @@ static void handle_command(fuior_state *state, TSNode node) {
             }
             free(enum_name);
             free(item_name);
-            break;
-        }
-
-        case CMD_DECLARE_VAR: {
-            TSNode arg1 = next_node(sym.command_arg, node);
-            char * var_name = fuior_command_arg_to_string(state, arg1);
-            TSNode arg2 = next_node(sym.command_arg, arg1);
-            char * type_name = fuior_command_arg_to_string(state, arg2);
-            if (var_name && type_name) {
-                fuior_type *var_type;
-                var_type = (fuior_type*)fuior_map_get(&state->variables, var_name);
-                if (var_type) {
-                    add_error(arg1, "variable %s already exists", var_name);
-                }
-                var_type = type_from_name(state, type_name);
-                if (!var_type) {
-                    add_error(arg2, "unknown type %s", type_name);
-                }
-                fuior_map_set(&state->variables, var_name, (void*)var_type);
-                fuior_map_set(&state->varname_enum->as_enum.items, var_name, (void*)1);
-            } else {
-                add_error(node, "declare_var expects var name and type");
-            }
-            free(var_name);
-            free(type_name);
             break;
         }
 
@@ -431,6 +458,30 @@ static void typecheck_text_statement(fuior_state *state, TSNode node) {
     free(actor);
 }
 
+static void collect_declare_var_statement(fuior_state *state, TSNode node) {
+    TSNode name_node = ts_node_child_by_field_id(node, fld.name);
+    if (ts_node_is_null(name_node)) return;
+
+    TSNode type_node = ts_node_child_by_field_id(node, fld.type);
+    fuior_type *var_type = NULL;
+    if (!ts_node_is_null(type_node)) {
+        var_type = type_from_container(state, type_node);
+    }
+    if (var_type == NULL) {
+        var_type = state->type_any;
+    }
+
+    char *var_name = fuior_node_to_string(state, name_node);
+    if (fuior_map_get(&state->variables, var_name)) {
+        add_error(name_node, "variable %s already exists", var_name);
+    }
+
+    fuior_map_set(&state->variables, var_name, (void*)var_type);
+    fuior_map_set(&state->varname_enum->as_enum.items, var_name, (void*)1);
+
+    free(var_name);
+}
+
 static void scan_for_declarations(fuior_state *state, TSNode node) {
     TSSymbol symbol = ts_node_symbol(node);
     if (symbol == sym.command_verb) {
@@ -440,6 +491,8 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
         typecheck_assign_statement(state, node);
     } else if (symbol == sym.text_statement) {
         typecheck_text_statement(state, node);
+    } else if (symbol == sym.declare_var_statement) {
+        collect_declare_var_statement(state, node);
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {

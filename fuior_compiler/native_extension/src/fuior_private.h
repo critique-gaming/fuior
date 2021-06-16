@@ -114,11 +114,14 @@ typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol intl_string;
     TSSymbol boolean;
     TSSymbol identifier;
-    TSSymbol type_identifier;
     TSSymbol function_call;
     TSSymbol unary_expression;
     TSSymbol binary_expression;
     TSSymbol paran_expression;
+    TSSymbol type_identifier;
+    TSSymbol unary_type_expression;
+    TSSymbol binary_type_expression;
+    TSSymbol paran_type_expression;
     TSSymbol choose_statement;
     TSSymbol choice;
     TSSymbol choice_condition;

@@ -20,7 +20,7 @@ HEADERS = \
 	$(EXT_DIR)/src/fuior_map.h
 
 INCLUDES = -I. -I$(EXT_DIR)/include
-CFLAGS = -std=gnu11
+CFLAGS := -std=gnu11
 
 build/$(TARGET)/fuior$(BIN_EXT): $(SOURCES) $(HEADERS)
 	mkdir -p build/$(TARGET)
