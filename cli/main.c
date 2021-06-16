@@ -100,17 +100,17 @@ typedef struct {
     const char *out_filename;
     FILE *out_file_handle;
     bool error_ranges;
-    bool generate_code;
+    bool emit_code;
 } command_line;
 
 static void print_help(FILE *stream) {
     fprintf(stream, "usage: fuior [options] source_file\n");
     fprintf(stream, "\tsource_file\tSource file name. Use - for stdin\n");
-    fprintf(stream, "\t--output out_filename\tFile name where to generate lua code. Use - for stdout. Defaults to stdout\n");
+    fprintf(stream, "\t--output out_filename\tFile name where to emit lua code. Use - for stdout. Defaults to stdout\n");
     fprintf(stream, "\t--o out_filename\n");
-    fprintf(stream, "\t--no-generate\tDon't generate code. Just check for errors\n");
+    fprintf(stream, "\t--no-emit\tDon't emit code. Just check for errors\n");
     fprintf(stream, "\t--header header_filename\tPath to a header with definitions. Defaults to searching for a config.fui in parent directories\n");
-    fprintf(stream, "\t--intl-filename\tFilename used to generate the default intl prefix. Defaults to the source file's filename\n");
+    fprintf(stream, "\t--intl-filename\tFilename used to emit the default intl prefix. Defaults to the source file's filename\n");
     fprintf(stream, "\t--error-ranges\tShow full error ranges\n");
 }
 
@@ -131,7 +131,7 @@ static void parse_command_line(command_line *cli, int argc, char **argv) {
     #define expect_args(n) if (i + (n) >= argc) { help_and_exit(); }; expected = (n)
 
     cli->error_ranges = false;
-    cli->generate_code = true;
+    cli->emit_code = true;
 
     for (int i = 1, expected = 0; i < argc; i += 1 + expected) {
         expected = 0;
@@ -145,8 +145,8 @@ static void parse_command_line(command_line *cli, int argc, char **argv) {
             expect_args(1);
             cli->intl_filename = argv[i + 1];
 
-        } else if (0 == strcmp(arg, "--no-generate")) {
-            cli->generate_code = false;
+        } else if (0 == strcmp(arg, "--no-emit") || 0 == strcmp(arg, "--no-generate")) {
+            cli->emit_code = false;
 
         } else if (0 == strcmp(arg, "--error-ranges")) {
             cli->error_ranges = true;
@@ -230,8 +230,8 @@ int main(int argc, char ** argv) {
         fuior_lint(state, &header_file);
         fuior_lint(state, &source_file);
     }
-    if (!fuior_state_has_errors(state) && cli.generate_code) {
-        fuior_generate_lua(state, &source_file);
+    if (!fuior_state_has_errors(state) && cli.emit_code) {
+        fuior_emit_lua(state, &source_file);
     }
 
     fuior_results *results = (fuior_results *)calloc(1, sizeof(fuior_results));

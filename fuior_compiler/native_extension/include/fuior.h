@@ -43,7 +43,7 @@ void fuior_state_free(fuior_state *state);
 void fuior_check_syntax(fuior_state *state, fuior_source_file *source_file);
 void fuior_analyse(fuior_state *state, fuior_source_file *source_file, const char *intl_filename);
 void fuior_lint(fuior_state *state, fuior_source_file *source_file);
-void fuior_generate_lua(fuior_state *state, fuior_source_file *source_file);
+void fuior_emit_lua(fuior_state *state, fuior_source_file *source_file);
 
 void fuior_results_free(fuior_results * results);
 

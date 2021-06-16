@@ -257,7 +257,7 @@ fuior_results *fuior_compile(const char * input, size_t input_len, const char * 
         fuior_analyse(state, &source_file, NULL);
     }
     if (!fuior_state_has_errors(state)) {
-        fuior_generate_lua(state, &source_file);
+        fuior_emit_lua(state, &source_file);
     }
 
     fuior_results *results = (fuior_results *)calloc(1, sizeof(fuior_results));
