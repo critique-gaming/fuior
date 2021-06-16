@@ -10,18 +10,21 @@
 #include "fuior_strlist.h"
 #include "fuior_list.h"
 
+#define emit(str) fuior_strlist_push(&state->output, (str))
+
 static void generate_block(fuior_state * state, TSNode node);
 static void generate_expression_container(fuior_state * state, TSNode node);
 static void generate_expression(fuior_state * state, TSNode node);
 static void generate_intl_string(fuior_state * state, TSNode node);
 
+
 static void generate_debug(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, ts_node_string(node));
+    emit(ts_node_string(node));
 }
 
 static void generate_indent(fuior_state * state) {
     for (unsigned i = 0; i < state->indent; i++) {
-        fuior_strlist_push(&state->output, "  ");
+        emit("  ");
     }
 }
 
@@ -61,7 +64,7 @@ static void generate_escaped_string(fuior_state * state, const char * string, si
                 raw_chunk_start = NULL;
             }
 
-            fuior_strlist_push(&state->output, escape_sequence);
+            emit(escape_sequence);
         }
 
         if (!escape_sequence && !raw_chunk_start) {
@@ -75,23 +78,23 @@ static void generate_escaped_string(fuior_state * state, const char * string, si
 }
 
 static void generate_bare_word(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "\"");
+    emit("\"");
     size_t start = ts_node_start_byte(node);
     size_t end = ts_node_end_byte(node);
     generate_escaped_string(state, state->input + start, (end - start));
-    fuior_strlist_push(&state->output, "\"");
+    emit("\"");
 }
 
 static void generate_string(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "\"");
+    emit("\"");
     size_t start = ts_node_start_byte(node) + 1;
     size_t end = ts_node_end_byte(node) - 1;
     generate_escaped_string(state, state->input + start, (end - start));
-    fuior_strlist_push(&state->output, "\"");
+    emit("\"");
 }
 
 static void generate_unary_expression(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "(");
+    emit("(");
 
     for (uint32_t i = 0, n = ts_node_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_child(node, i);
@@ -101,7 +104,7 @@ static void generate_unary_expression(fuior_state * state, TSNode node) {
             uint32_t end = ts_node_end_byte(child);
             const char * op = state->input + start;
             fuior_strlist_push_(&state->output, op, end - start);
-            fuior_strlist_push(&state->output, " ");
+            emit(" ");
         } else {
             TSSymbol symbol = ts_node_symbol(child);
             if (symbol != sym.comment) {
@@ -110,7 +113,7 @@ static void generate_unary_expression(fuior_state * state, TSNode node) {
         }
     }
 
-    fuior_strlist_push(&state->output, ")");
+    emit(")");
 }
 
 static const char * translate_binary_operator(const char * op, size_t length) {
@@ -130,13 +133,13 @@ static const char * translate_binary_operator(const char * op, size_t length) {
 }
 
 static void generate_binary_expression(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "(");
+    emit("(");
 
     for (uint32_t i = 0, n = ts_node_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_child(node, i);
 
         if (!ts_node_is_named(child)) {
-            fuior_strlist_push(&state->output, " ");
+            emit(" ");
 
             uint32_t start = ts_node_start_byte(child);
             uint32_t end = ts_node_end_byte(child);
@@ -147,10 +150,10 @@ static void generate_binary_expression(fuior_state * state, TSNode node) {
                 add_error(node, "Unimplemented operator");
                 fuior_strlist_push_(&state->output, op, end - start);
             } else {
-                fuior_strlist_push(&state->output, lua_op);
+                emit(lua_op);
             }
 
-            fuior_strlist_push(&state->output, " ");
+            emit(" ");
         } else {
             TSSymbol symbol = ts_node_symbol(child);
             if (symbol != sym.comment) {
@@ -159,7 +162,7 @@ static void generate_binary_expression(fuior_state * state, TSNode node) {
         }
     }
 
-    fuior_strlist_push(&state->output, ")");
+    emit(")");
 }
 
 static void generate_expression(fuior_state * state, TSNode node) {
@@ -174,9 +177,9 @@ static void generate_expression(fuior_state * state, TSNode node) {
     } else if (symbol == sym.intl_string) {
         generate_intl_string(state, node);
     } else if (symbol == sym.identifier) {
-        fuior_strlist_push(&state->output, "fui.var_get(\"");
+        emit("fui.var_get(\"");
         generate_identifier(state, node);
-        fuior_strlist_push(&state->output, "\")");
+        emit("\")");
     } else if (symbol == sym.paran_expression) {
         generate_expression_container(state, node);
     } else if (symbol == sym.unary_expression) {
@@ -197,9 +200,9 @@ static void generate_text_copy_intl_key(fuior_state * state, TSNode node) {
 }
 
 static void generate_text_copy(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "intl(");
+    emit("intl(");
     generate_text_copy_intl_key(state, node);
-    fuior_strlist_push(&state->output, ")");
+    emit(")");
 }
 
 static void generate_intl_string_key(fuior_state * state, TSNode node) {
@@ -210,9 +213,9 @@ static void generate_intl_string_key(fuior_state * state, TSNode node) {
 }
 
 static void generate_intl_string(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "intl(");
+    emit("intl(");
     generate_intl_string_key(state, node);
-    fuior_strlist_push(&state->output, ")");
+    emit(")");
 }
 
 static void generate_command_arg(fuior_state * state, TSNode node) {
@@ -240,19 +243,19 @@ static void generate_command_statement(fuior_state * state, TSNode node) {
         if (symbol == sym.command_verb) {
             if (fuior_get_special_command(state, child, fuior_special_commands_intl) != -1) { return; }
             generate_indent(state);
-            fuior_strlist_push(&state->output, "fui.");
+            emit("fui.");
             generate_identifier(state, child);
-            fuior_strlist_push(&state->output, "(");
+            emit("(");
         } else if (symbol == sym.command_arg) {
             if (arg_index > 0) {
-                fuior_strlist_push(&state->output, ", ");
+                emit(", ");
             }
             generate_command_arg(state, child);
             arg_index += 1;
         }
     }
 
-    fuior_strlist_push(&state->output, ")\n");
+    emit(")\n");
 }
 
 static void generate_choose_statement(fuior_state * state, TSNode node) {
@@ -276,41 +279,41 @@ static void generate_choose_statement(fuior_state * state, TSNode node) {
             }
 
             if (!ts_node_is_null(condition_node)) {
-                fuior_strlist_push(&state->output, "(");
+                emit("(");
                 generate_expression_container(state, condition_node);
-                fuior_strlist_push(&state->output, ") and ");
+                emit(") and ");
             }
 
             if (!ts_node_is_null(meta_node)) {
-                fuior_strlist_push(&state->output, "fui.choice_meta(");
+                emit("fui.choice_meta(");
             }
 
             if (!ts_node_is_null(text_copy_node)) {
                 generate_text_copy(state, text_copy_node);
             } else {
-                fuior_strlist_push(&state->output, "nil");
+                emit("nil");
             }
 
             if (!ts_node_is_null(meta_node)) {
-                fuior_strlist_push(&state->output, ", function ()\n");
+                emit(", function ()\n");
                 state->indent += 1;
                 generate_block(state, meta_node);
                 state->indent -= 1;
                 generate_indent(state);
-                fuior_strlist_push(&state->output, "end)");
+                emit("end)");
             }
 
             if (!ts_node_is_null(condition_node)) {
-                fuior_strlist_push(&state->output, " or nil");
+                emit(" or nil");
             }
 
-            fuior_strlist_push(&state->output, ",\n");
+            emit(",\n");
         }
     }
     state->indent -= 1;
 
     generate_indent(state);
-    fuior_strlist_push(&state->output, "})\n");
+    emit("})\n");
 
     unsigned choice_index = 0;
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
@@ -340,13 +343,13 @@ static void generate_choose_statement(fuior_state * state, TSNode node) {
 
     if (choice_index) {
         generate_indent(state);
-        fuior_strlist_push(&state->output, "end\n");
+        emit("end\n");
     }
 }
 
 static void generate_text_statement(fuior_state * state, TSNode node) {
     generate_indent(state);
-    fuior_strlist_push(&state->output, "fui.text(\"");
+    emit("fui.text(\"");
 
     int has_animation = 0;
 
@@ -356,23 +359,23 @@ static void generate_text_statement(fuior_state * state, TSNode node) {
         TSSymbol symbol = ts_node_symbol(child);
         if (symbol == sym.text_actor) {
             generate_identifier(state, child);
-            fuior_strlist_push(&state->output, "\", ");
+            emit("\", ");
 
         } else if (symbol == sym.text_animation) {
-            fuior_strlist_push(&state->output, "\"");
+            emit("\"");
             generate_identifier(state, child);
-            fuior_strlist_push(&state->output, "\", ");
+            emit("\", ");
             has_animation = 1;
 
         } else if (symbol == sym.text_copy) {
             if (!has_animation) {
-                fuior_strlist_push(&state->output, "nil, ");
+                emit("nil, ");
             }
             generate_text_copy(state, child);
         }
     }
 
-    fuior_strlist_push(&state->output, ")\n");
+    emit(")\n");
 }
 
 static void generate_expression_container(fuior_state * state, TSNode node) {
@@ -417,9 +420,9 @@ static void generate_assign_statement(fuior_state * state, TSNode node) {
     generate_indent(state);
     fuior_strlist_printf(&state->output, "fui.%s(\"", func);
     generate_identifier(state, lvalue_node);
-    fuior_strlist_push(&state->output, "\", ");
+    emit("\", ");
     generate_assign_rvalue(state, rvalue_node);
-    fuior_strlist_push(&state->output, ")\n");
+    emit(")\n");
 }
 
 static void generate_if_clause(fuior_state * state, TSNode node) {
@@ -442,9 +445,9 @@ static void generate_elseif_clause(fuior_state * state, TSNode node) {
         TSSymbol symbol = ts_node_symbol(child);
         if (symbol == sym.condition) {
             generate_indent(state);
-            fuior_strlist_push(&state->output, "elseif ");
+            emit("elseif ");
             generate_condition(state, child);
-            fuior_strlist_push(&state->output, " then\n");
+            emit(" then\n");
         } else if (symbol == sym.block) {
             state->indent += 1;
             generate_block(state, child);
@@ -455,7 +458,7 @@ static void generate_elseif_clause(fuior_state * state, TSNode node) {
 
 static void generate_if_statement(fuior_state * state, TSNode node) {
     generate_indent(state);
-    fuior_strlist_push(&state->output, "if ");
+    emit("if ");
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_named_child(node, i);
@@ -463,25 +466,25 @@ static void generate_if_statement(fuior_state * state, TSNode node) {
         TSSymbol symbol = ts_node_symbol(child);
         if (symbol == sym.condition) {
             generate_condition(state, child);
-            fuior_strlist_push(&state->output, " then\n");
+            emit(" then\n");
         } else if (symbol == sym.if_clause) {
             generate_if_clause(state, child);
         } else if (symbol == sym.elseif_clause) {
             generate_elseif_clause(state, child);
         } else if (symbol == sym.else_clause) {
             generate_indent(state);
-            fuior_strlist_push(&state->output, "else\n");
+            emit("else\n");
             generate_if_clause(state, child);
         }
     }
 
     generate_indent(state);
-    fuior_strlist_push(&state->output, "end\n");
+    emit("end\n");
 }
 
 static void generate_return_statement(fuior_state * state, TSNode node) {
     generate_indent(state);
-    fuior_strlist_push(&state->output, "return");
+    emit("return");
 
     bool first = true;
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
@@ -489,13 +492,13 @@ static void generate_return_statement(fuior_state * state, TSNode node) {
 
         TSSymbol symbol = ts_node_symbol(child);
         if (symbol == sym.return_value) {
-            fuior_strlist_push(&state->output, first ? " " : ", ");
+            emit(first ? " " : ", ");
             generate_expression_container(state, child);
             first = false;
         }
     }
 
-    fuior_strlist_push(&state->output, "\n");
+    emit("\n");
 }
 
 static void generate_declare_var_statement(fuior_state * state, TSNode node) {
@@ -507,11 +510,11 @@ static void generate_declare_var_statement(fuior_state * state, TSNode node) {
     }
 
     generate_indent(state);
-    fuior_strlist_push(&state->output, "fui.declare_var(\"");
+    emit("fui.declare_var(\"");
     generate_identifier(state, name_node);
-    fuior_strlist_push(&state->output, "\", ");
+    emit("\", ");
     if (ts_node_is_null(default_value_node)) {
-        fuior_strlist_push(&state->output, "nil");
+        emit("nil");
     } else {
         generate_expression_container(state, default_value_node);
     }
@@ -525,24 +528,24 @@ static void generate_declare_var_statement(fuior_state * state, TSNode node) {
             TSNode decorator_name_node = ts_node_child_by_field_id(child, fld.name);
             if (ts_node_is_null(decorator_name_node)) continue;
 
-            fuior_strlist_push(&state->output, first ? ", [[\"" : ", [\"");
+            emit(first ? ", [[\"" : ", [\"");
             first = false;
             generate_identifier(state, decorator_name_node);
-            fuior_strlist_push(&state->output, "\"");
+            emit("\"");
 
             TSNode arg_list_node = ts_node_child_by_field_id(child, fld.arg_list);
             for (uint32_t j = 0, m = ts_node_named_child_count(arg_list_node); j < m; j += 1) {
                 TSNode arg_node = ts_node_named_child(arg_list_node, j);
-                fuior_strlist_push(&state->output, ", ");
+                emit(", ");
                 generate_expression(state, arg_node);
             }
 
-            fuior_strlist_push(&state->output, "]");
+            emit("]");
         }
     }
 
-    if (!first) { fuior_strlist_push(&state->output, "]"); }
-    fuior_strlist_push(&state->output, ")\n");
+    if (!first) { emit("]"); }
+    emit(")\n");
 }
 
 static void generate_block(fuior_state * state, TSNode node) {
@@ -569,7 +572,7 @@ static void generate_block(fuior_state * state, TSNode node) {
             add_error(node, "Unimplemented generation");
             generate_indent(state);
             generate_debug(state, child);
-            fuior_strlist_push(&state->output, "\n");
+            emit("\n");
         }
     }
 }
@@ -578,25 +581,25 @@ static void generate_intl_strings(fuior_state *state, TSNode node) {
     TSSymbol symbol = ts_node_symbol(node);
     if (symbol == sym.text_copy) {
         generate_indent(state);
-        fuior_strlist_push(&state->output, "[");
+        emit("[");
         generate_text_copy_intl_key(state, node);
 
-        fuior_strlist_push(&state->output, "] = \"");
+        emit("] = \"");
         size_t start = ts_node_start_byte(node);
         size_t end = ts_node_end_byte(node);
         generate_escaped_string(state, state->input + start, (end - start));
-        fuior_strlist_push(&state->output, "\",\n");
+        emit("\",\n");
 
     } else if (symbol == sym.intl_string) {
         generate_indent(state);
-        fuior_strlist_push(&state->output, "[");
+        emit("[");
         generate_intl_string_key(state, node);
 
-        fuior_strlist_push(&state->output, "] = \"");
+        emit("] = \"");
         size_t start = ts_node_start_byte(node) + 2;
         size_t end = ts_node_end_byte(node) - 1;
         generate_escaped_string(state, state->input + start, (end - start));
-        fuior_strlist_push(&state->output, "\",\n");
+        emit("\",\n");
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
@@ -606,31 +609,31 @@ static void generate_intl_strings(fuior_state *state, TSNode node) {
 }
 
 static void generate_source_file(fuior_state * state, TSNode node) {
-    fuior_strlist_push(&state->output, "return function (fui)\n");
+    emit("return function (fui)\n");
 
     state->indent += 1;
 
     generate_indent(state);
-    fuior_strlist_push(&state->output, "local intl = fui.intl(");
+    emit("local intl = fui.intl(");
     if (state->intl_namespace) {
-        fuior_strlist_push(&state->output, "\"");
+        emit("\"");
         generate_escaped_string(state, state->intl_namespace, strlen(state->intl_namespace));
-        fuior_strlist_push(&state->output, "\"");
+        emit("\"");
     } else {
-        fuior_strlist_push(&state->output, "nil");
+        emit("nil");
     }
-    fuior_strlist_push(&state->output, ", {\n");
+    emit(", {\n");
     state->indent += 1;
     generate_intl_strings(state, node);
     state->indent -= 1;
     generate_indent(state);
-    fuior_strlist_push(&state->output, "})\n");
+    emit("})\n");
 
     generate_block(state, node);
 
     state->indent -= 1;
 
-    fuior_strlist_push(&state->output, "end\n");
+    emit("end\n");
 }
 
 void fuior_generate_lua(fuior_state *state, fuior_source_file *source_file) {
