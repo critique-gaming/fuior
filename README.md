@@ -261,3 +261,14 @@ declare command3(arg1: number, arg2: ?string): number
 
 If your runtime defines external commands, you must define them so that
 type checking works.
+
+## Importing another Fuior file
+
+```fuior
+import "path/to/file.fui"
+```
+
+Using the `import` command, you can import commands and variables declared in
+a separate file. When the `import` command is encountered, Fuior runs the 
+contents of the imported file as if it was written inline. Importing the same
+file twice has no effect the second time.

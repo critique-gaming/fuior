@@ -24,6 +24,9 @@ struct fuior_state {
     fuior_map variables;
     fuior_list types;
 
+    fuior_import_callback on_import;
+    void *on_import_ctx;
+
     struct fuior_type *varname_enum;
     struct fuior_type *character_enum;
     struct fuior_type *type_any;

@@ -34,6 +34,10 @@ local function compile(filename)
   return chunk()
 end
 
+function fui.import(filename)
+  compile("/" .. filename)(fui)
+end
+
 function init(self)
   print("Compiling and running config.fui...")
   compile("/example/fuior_files/config.fui")(fui)

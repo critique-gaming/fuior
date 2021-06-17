@@ -206,6 +206,9 @@ fuior_state *fuior_state_new() {
     fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item",  state->type_string));
     enum_cmd->vararg = fuior_command_arg_new("...", state->type_any);
 
+    fuior_command *import_cmd = fuior_command_register(state, "import");
+    fuior_list_push(&import_cmd->args, fuior_command_arg_new("filename", state->type_string));
+
     return state;
 }
 

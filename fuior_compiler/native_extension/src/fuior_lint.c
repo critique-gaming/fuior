@@ -13,6 +13,8 @@
 const char * const special_commands_lint[] = {
     #define CMD_ENUM 0
     "enum",
+    #define CMD_IMPORT 1
+    "import",
     NULL
 };
 
@@ -126,6 +128,25 @@ static void handle_command(fuior_state *state, TSNode node) {
             }
             free(enum_name);
             free(item_name);
+            break;
+        }
+
+        case CMD_IMPORT: {
+            TSNode arg1 = next_node(sym.command_arg, node);
+            char * filename = fuior_command_arg_to_string(state, arg1);
+            if (!filename) {
+                add_error(node, "import expects a filename");
+                break;
+            }
+
+            if (state->on_import) {
+                const char * input = state->input;
+                const char * fname = state->filename;
+                state->on_import(filename, state, state->on_import_ctx);
+                state->input = input;
+                state->filename = fname;
+            }
+
             break;
         }
 
@@ -494,10 +515,16 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
     }
 }
 
-void fuior_lint(fuior_state *state, fuior_source_file *source_file) {
+void fuior_lint(fuior_state *state, fuior_source_file *source_file, fuior_import_callback import_cb, void* ctx) {
     state->filename = source_file->filename;
     state->input = source_file->input;
+    fuior_import_callback old_cb = state->on_import;
+    fuior_import_callback old_ctx = state->on_import_ctx;
+    state->on_import = import_cb;
+    state->on_import_ctx = ctx;
     scan_for_declarations(state, ts_tree_root_node(source_file->tree));
+    state->on_import = old_cb;
+    state->on_import_ctx = old_ctx;
 }
 
 fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag) {

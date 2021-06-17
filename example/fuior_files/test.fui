@@ -9,9 +9,6 @@ log_var some_stat
 
 log "This is a test"
 
-command my_command()
-  alice: Hey!
-  log {random(1, 10)}
-end
+import "example/fuior_files/imported.fui"
 
 my_command
