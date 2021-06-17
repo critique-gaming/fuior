@@ -34,7 +34,11 @@ local function compile(filename)
   return chunk()
 end
 
+local imported_files = {}
 function fui.import(filename)
+  if imported_files[filename] then return end
+  imported_files[filename] = true
+  print("Imported " .. filename)
   compile("/" .. filename)(fui)
 end
 
