@@ -234,7 +234,7 @@ typedef struct import_callback_context {
     TSParser *parser;
 } import_callback_context;
 
-static void on_import(const char * import_name, fuior_state * state, void * context) {
+static char * on_import(const char * import_name, fuior_state * state, void * context) {
     import_callback_context *ctx = (import_callback_context*)context;
 
     size_t n = strlen(ctx->cli->import_root);
@@ -245,11 +245,20 @@ static void on_import(const char * import_name, fuior_state * state, void * cont
     strcpy(path + n, PATH_SEP);
     strcpy(path + n + m, import_name);
 
+    FILE *handle = fopen(path, "rb");
+    if (!handle) {
+        size_t n = snprintf(NULL, 0, "Cannot open %s", path);
+        char * errstring = (char*)malloc(n + 1);
+        snprintf(errstring, n + 1, "Cannot open %s", path);
+        free(path);
+        return errstring;
+    }
+
     for (size_t i = 0; i < ctx->source_file_count; i ++) {
         const char * fname = ctx->source_files[i]->filename;
         if (fname && 0 == strcmp(path, fname)) {
             free(path);
-            return;
+            return NULL;
         }
     }
 
@@ -264,10 +273,12 @@ static void on_import(const char * import_name, fuior_state * state, void * cont
     fuior_source_file *source_file = (fuior_source_file*)calloc(1, sizeof(fuior_source_file));
     ctx->source_files[ctx->source_file_count++] = source_file;
     size_t file_len;
-    char *contents = read_file(assert_fopen(path, "rb"), &file_len);
+    char *contents = read_file(handle, &file_len);
     fuior_parse(source_file, ctx->parser, contents, file_len, path, NULL);
     fuior_check_syntax(state, source_file);
     fuior_lint(state, source_file, &on_import, context);
+
+    return NULL;
 }
 
 int main(int argc, char ** argv) {

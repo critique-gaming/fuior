@@ -139,12 +139,21 @@ static void handle_command(fuior_state *state, TSNode node) {
                 break;
             }
 
-            if (state->on_import) {
+            fuior_import_callback cb = state->on_import;
+            void * ctx = state->on_import_ctx;
+            if (cb) {
                 const char * input = state->input;
                 const char * fname = state->filename;
-                state->on_import(filename, state, state->on_import_ctx);
+                char * error = cb(filename, state, ctx);
                 state->input = input;
                 state->filename = fname;
+                state->on_import = cb;
+                state->on_import_ctx = ctx;
+
+                if (error) {
+                  add_error(arg1, "%s", error);
+                  free(error);
+                }
             }
 
             break;
@@ -518,13 +527,9 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
 void fuior_lint(fuior_state *state, fuior_source_file *source_file, fuior_import_callback import_cb, void* ctx) {
     state->filename = source_file->filename;
     state->input = source_file->input;
-    fuior_import_callback old_cb = state->on_import;
-    void *old_ctx = state->on_import_ctx;
     state->on_import = import_cb;
     state->on_import_ctx = ctx;
     scan_for_declarations(state, ts_tree_root_node(source_file->tree));
-    state->on_import = old_cb;
-    state->on_import_ctx = old_ctx;
 }
 
 fuior_type *fuior_type_new(fuior_state *state, fuior_type_tag tag) {

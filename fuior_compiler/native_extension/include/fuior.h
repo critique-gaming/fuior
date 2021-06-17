@@ -40,7 +40,7 @@ void fuior_state_get_results(fuior_state *state, fuior_results * results);
 bool fuior_state_has_errors(const fuior_state *state);
 void fuior_state_free(fuior_state *state);
 
-typedef void (*fuior_import_callback)(const char *, fuior_state *, void*);
+typedef char *(*fuior_import_callback)(const char *, fuior_state *, void*);
 
 void fuior_check_syntax(fuior_state *state, fuior_source_file *source_file);
 void fuior_analyse(fuior_state *state, fuior_source_file *source_file, const char *intl_filename);
