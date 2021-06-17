@@ -110,18 +110,17 @@ my_var = my_var + 2
 Commands are **statements** that execute a particular task. A command always 
 starts with its name, followed by a list of arguments.
 
-Arguments can be **expressions** or **bare words**, which are interpreted as string
-literals. A quirk of this syntax is that non-literal expressions need to be
-paranthesised.
+Arguments can be literals, **bare words**, which are interpreted as string
+literals or **expressions** between `{` and `}`.
 
 ```fuior
 # These statements are equivalent:
-some_command 12 false (x < 12) "a_string"
-some_command 12 false (x < 12) a_string
+some_command 12 false {x < 12} "a_string"
+some_command 12 false {x < 12} a_string
 
 # These are NOT the same:
 some_command my_var    # This is a bare word and passes the "my_var" string as the first argument
-some_command (my_var)  # This passes the value of the my_var variable as the first argument
+some_command {my_var}  # This passes the value of the my_var variable as the first argument
 ```
 
 ### Text statements
