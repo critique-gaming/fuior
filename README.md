@@ -84,6 +84,10 @@ Expressions are computed values. Expressions can be:
     ```fuior
     my_var = ((x + 1) * (x + 3)) * 2
     ```
+* Command calls. Some commands return values that can be used in expressions
+    ```fuior
+    my_var = max(0, min(100, x))
+    ```
 
 ### Increment/decrement a variable
 
@@ -211,3 +215,49 @@ choose
   favorite_pet = "chicken"
 end
 ```
+
+## Declaring variables
+
+```fuior
+var foo
+var bar: string
+var baz: number = 12
+var moo: number @min(0) @max(100) = 50
+```
+
+Before usage, variables must be declared. Fuior is an optionally typed language.
+Declaring types for variables is not required, but encouraged.
+
+Variables can be optionally annotated with decorators (see `@min` and `@max` in 
+the example above). Their functions are runtime-defined.
+
+## Defining your own commands
+
+```fuior
+command my_command()
+  some_statements
+end
+
+command my_command_that_returns_a_number(): number 
+  some_statements
+  return 12 # Optional return statement
+end
+```
+
+You can group statements into reusable blocks by defining your own commands.
+
+Commands can return a value that can be used as part of an **expression**.
+
+Command arguments for custom commands are not yet implemented (the syntax works,
+but there is no mechanism to address the arguments as variables).
+
+## Declaring commands
+
+```fuior
+declare command1()
+declare command2(arg1: number, arg2: ?string)
+declare command3(arg1: number, arg2: ?string): number
+```
+
+If your runtime defines external commands, you must define them so that
+type checking works.

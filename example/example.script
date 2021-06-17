@@ -5,6 +5,25 @@ function fui.intl(namespace, keys)
   end
 end
 
+fui.min = math.min
+fui.max = math.max
+fui.random = math.random
+
+math.randomseed(os.time())
+for i = 1, 30 do math.random() end
+
+function fui.define_command(name, f)
+  fui[name] = f
+end
+
+setmetatable(fui, {
+  __index = function (t, field)
+    return function (...)
+    pprint("Called command " .. field, ...)
+  end
+end
+})
+
 local function compile(filename)
   if not fuior_compiler then
     error("Fuior native extension not present")
@@ -14,14 +33,6 @@ local function compile(filename)
   local chunk = assert(loadstring(func_string, filename))
   return chunk()
 end
-
-setmetatable(fui, {
-  __index = function (t, field)
-    return function (...)
-    print("Called command ", field, ...)
-  end
-end
-})
 
 function init(self)
   print("Compiling and running config.fui...")

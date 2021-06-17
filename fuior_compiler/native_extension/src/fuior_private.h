@@ -94,6 +94,7 @@ static inline fuior_command_arg *fuior_command_arg_new(const char *name, fuior_t
 typedef struct fuior_command {
     fuior_list args;
     fuior_command_arg *vararg;
+    fuior_type *return_type;
 } fuior_command;
 
 void fuior_command_clear(fuior_command *self);
@@ -141,6 +142,7 @@ typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol elseif_clause;
     TSSymbol else_clause;
     TSSymbol arg_definition;
+    TSSymbol vararg_definition;
     TSSymbol arg_type;
     TSSymbol arg_name;
     TSSymbol arg_definition_list;
@@ -182,6 +184,7 @@ typedef struct fuior_tree_sitter_fields_t {
     TSFieldId rvalue;
     TSFieldId signature;
     TSFieldId type;
+    TSFieldId vararg;
     TSFieldId verb;
 } fuior_tree_sitter_fields_t;
 

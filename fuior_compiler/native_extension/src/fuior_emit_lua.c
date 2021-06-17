@@ -16,7 +16,7 @@ static void emit_block(fuior_state * state, TSNode node);
 static void emit_expression_container(fuior_state * state, TSNode node);
 static void emit_expression(fuior_state * state, TSNode node);
 static void emit_intl_string(fuior_state * state, TSNode node);
-
+static void emit_arg_list(fuior_state *state, TSNode node, bool first);
 
 static void emit_debug(fuior_state * state, TSNode node) {
     emit(ts_node_string(node));
@@ -37,6 +37,8 @@ static void emit_literal_token(fuior_state * state, TSNode node) {
 #define emit_number emit_literal_token
 #define emit_boolean emit_literal_token
 #define emit_identifier emit_literal_token
+
+#define emit_declare_command_statement(state, node) NULL
 
 static void emit_escaped_string(fuior_state * state, const char * string, size_t length) {
     const char * raw_chunk_start = NULL;
@@ -165,6 +167,17 @@ static void emit_binary_expression(fuior_state * state, TSNode node) {
     emit(")");
 }
 
+static void emit_function_call(fuior_state * state, TSNode node) {
+   TSNode name_node = ts_node_child_by_field_id(node, fld.name);
+   if (ts_node_is_null(name_node)) { return; }
+   emit("fui.");
+   emit_identifier(state, name_node);
+   emit("(");
+   TSNode arg_list_node = ts_node_child_by_field_id(node, fld.arg_list);
+   emit_arg_list(state, arg_list_node, true);
+   emit(")");
+}
+
 static void emit_expression(fuior_state * state, TSNode node) {
     TSSymbol symbol = ts_node_symbol(node);
 
@@ -186,6 +199,8 @@ static void emit_expression(fuior_state * state, TSNode node) {
         emit_unary_expression(state, node);
     } else if (symbol == sym.binary_expression) {
         emit_binary_expression(state, node);
+    } else if (symbol == sym.function_call) {
+        emit_function_call(state, node);
     } else {
         add_error(node, "Unimplemented generation");
         emit_debug(state, node);
@@ -501,6 +516,17 @@ static void emit_return_statement(fuior_state * state, TSNode node) {
     emit("\n");
 }
 
+static void emit_arg_list(fuior_state *state, TSNode node, bool first) {
+    for (uint32_t j = 0, m = ts_node_named_child_count(node); j < m; j += 1) {
+        TSNode arg_node = ts_node_named_child(node, j);
+        if (ts_node_symbol(arg_node) != sym.comment) {
+            if (!first) emit(", ");
+            first = false;
+            emit_expression(state, arg_node);
+        }
+    }
+}
+
 static void emit_declare_var_statement(fuior_state * state, TSNode node) {
     TSNode name_node = ts_node_child_by_field_id(node, fld.name);
     TSNode default_value_node = ts_node_child_by_field_id(node, fld.default_value);
@@ -528,24 +554,64 @@ static void emit_declare_var_statement(fuior_state * state, TSNode node) {
             TSNode decorator_name_node = ts_node_child_by_field_id(child, fld.name);
             if (ts_node_is_null(decorator_name_node)) continue;
 
-            emit(first ? ", [[\"" : ", [\"");
+            emit(first ? ", {{\"" : ", {\"");
             first = false;
             emit_identifier(state, decorator_name_node);
             emit("\"");
 
             TSNode arg_list_node = ts_node_child_by_field_id(child, fld.arg_list);
-            for (uint32_t j = 0, m = ts_node_named_child_count(arg_list_node); j < m; j += 1) {
-                TSNode arg_node = ts_node_named_child(arg_list_node, j);
-                emit(", ");
-                emit_expression(state, arg_node);
-            }
+            emit_arg_list(state, arg_list_node, false);
 
-            emit("]");
+            emit("}");
         }
     }
 
-    if (!first) { emit("]"); }
+    if (!first) { emit("}"); }
     emit(")\n");
+}
+
+static void emit_arg_definition_list(fuior_state * state, TSNode node) {
+    if (ts_node_is_null(node)) return;
+    bool first = true;
+    for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+        TSSymbol symbol = ts_node_symbol(child);
+        if (symbol == sym.arg_definition) {
+            TSNode name_node = ts_node_child_by_field_id(child, fld.name);
+            if (!ts_node_is_null(name_node)) {
+                if (!first) emit(", ");
+                first = false;
+                emit_identifier(state, name_node);
+            }
+        } else if (symbol == sym.vararg_definition) {
+            emit(first ? "..." : ", ...");
+            first = false;
+        }
+    }
+}
+
+static void emit_define_command_statement(fuior_state * state, TSNode node) {
+    TSNode signature_node = ts_node_child_by_field_id(node, fld.signature);
+    TSNode name_node = ts_node_child_by_field_id(signature_node, fld.name);
+    TSNode arg_list_node = ts_node_child_by_field_id(signature_node, fld.arguments);
+    TSNode body_node = ts_node_child_by_field_id(node, fld.body);
+
+    if (ts_node_is_null(body_node) || ts_node_is_null(name_node)) {
+        add_error(node, "Invalid define command statement");
+        return;
+    }
+
+    emit_indent(state);
+    emit("fui.define_command(\"");
+    emit_identifier(state, name_node);
+    emit("\", function (");
+    emit_arg_definition_list(state, arg_list_node);
+    emit(")\n");
+    state->indent += 1;
+    emit_block(state, body_node);
+    state->indent -= 1;
+    emit_indent(state);
+    emit("end)\n");
 }
 
 static void emit_block(fuior_state * state, TSNode node) {
@@ -566,6 +632,10 @@ static void emit_block(fuior_state * state, TSNode node) {
             emit_if_statement(state, child);
         } else if (symbol == sym.declare_var_statement) {
             emit_declare_var_statement(state, child);
+        } else if (symbol == sym.declare_command_statement) {
+            emit_declare_command_statement(state, child);
+        } else if (symbol == sym.define_command_statement) {
+            emit_define_command_statement(state, child);
         } else if (symbol == sym.return_statement) {
             emit_return_statement(state, child);
         } else {

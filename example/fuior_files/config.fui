@@ -7,11 +7,12 @@ enum animation_bob idle
 var some_stat: number @min(-10) @max(10) = 0
 var some_flag: boolean = false
 
-declare_cmd log   "..." any
-declare_cmd log_var varname varname
-declare_cmd set  varname varname
-declare_cmd unset  varname varname
-
-declare_cmd animate  char character  animation string
-
-declare_cmd wait  seconds number
+declare command log(...: any)
+declare command log_var(varname: varname)
+declare command set(varname: varname)
+declare command unset(varname: varname)
+declare command animate(char: character, animation: string)
+declare command wait(seconds: number)
+declare command min(a: number, b: number): number
+declare command max(a: number, b: number): number
+declare command random(from: ?number, to: ?number): number

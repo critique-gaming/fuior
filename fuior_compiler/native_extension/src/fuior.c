@@ -123,6 +123,7 @@ TSParser* fuior_parser_new() {
         fetch_symbol(elseif_clause);
         fetch_symbol(else_clause);
         fetch_symbol(arg_definition);
+        fetch_symbol(vararg_definition);
         fetch_symbol(arg_type);
         fetch_symbol(arg_name);
         fetch_symbol(arg_definition_list);
@@ -162,6 +163,7 @@ TSParser* fuior_parser_new() {
         fetch_field(rvalue);
         fetch_field(signature);
         fetch_field(type);
+        fetch_field(vararg);
         fetch_field(verb);
     }
 
@@ -203,9 +205,6 @@ fuior_state *fuior_state_new() {
     fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", state->type_string));
     fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item",  state->type_string));
     enum_cmd->vararg = fuior_command_arg_new("...", state->type_any);
-
-    fuior_command *declare_cmd_cmd = fuior_command_register(state, "declare_cmd");
-    declare_cmd_cmd->vararg = fuior_command_arg_new("...", state->type_any);
 
     return state;
 }

@@ -13,8 +13,6 @@
 const char * const special_commands_lint[] = {
     #define CMD_ENUM 0
     "enum",
-    #define CMD_DECLARE_CMD 1
-    "declare_cmd",
     NULL
 };
 
@@ -131,64 +129,6 @@ static void handle_command(fuior_state *state, TSNode node) {
             break;
         }
 
-        case CMD_DECLARE_CMD: {
-            TSNode arg1 = next_node(sym.command_arg, node);
-            char * cmd_name = fuior_command_arg_to_string(state, arg1);
-            if (!cmd_name) {
-                add_error(node, "declare_cmd expects the command name");
-                break;
-            }
-
-            fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, cmd_name);
-            if (cmd) {
-                add_error(arg1, "%s command already declared", cmd_name);
-                free(cmd_name);
-                break;
-            }
-
-            cmd = fuior_command_register(state, cmd_name);
-            free(cmd_name);
-
-            TSNode argname_node;
-            TSNode argtype_node = arg1;
-            while (true) {
-                argname_node = next_node(sym.command_arg, argtype_node);
-                if (ts_node_is_null(argname_node)) break;
-                argtype_node = next_node(sym.command_arg, argname_node);
-                char * argname = fuior_command_arg_to_string(state, argname_node);
-                char * argtype = fuior_command_arg_to_string(state, argtype_node);
-                if (!argname) {
-                    add_error(node, "expected argument name");
-                }
-                if (!argtype) {
-                    add_error(node, "expected argument type");
-                }
-                if (argname && argtype) {
-                    fuior_type *type = type_from_name(state, argtype);
-                    if (type) {
-                        fuior_command_arg *arg = fuior_command_arg_new(argname, type);
-                        bool add_to_list = true;
-                        if (0 == strcmp("...", argname)) {
-                            if (cmd->vararg) {
-                                add_error(argname_node, "cannot use ... twice in the same command");
-                            } else {
-                                add_to_list = false;
-                                cmd->vararg = arg;
-                            }
-                        }
-                        if (add_to_list) {
-                            fuior_list_push(&cmd->args, (void*)arg);
-                        }
-                    } else {
-                        add_error(argtype_node, "unknown type %s", argtype);
-                    }
-                }
-                free(argname);
-                free(argtype);
-            }
-
-            break;
-        }
     }
 }
 
@@ -458,18 +398,23 @@ static void typecheck_text_statement(fuior_state *state, TSNode node) {
     free(actor);
 }
 
+static fuior_type *type_from_optional_node_container(fuior_state *state, TSNode node) {
+    fuior_type *var_type = NULL;
+    if (!ts_node_is_null(node)) {
+        var_type = type_from_container(state, node);
+    }
+    if (var_type == NULL) {
+        var_type = state->type_any;
+    }
+    return var_type;
+}
+
 static void collect_declare_var_statement(fuior_state *state, TSNode node) {
     TSNode name_node = ts_node_child_by_field_id(node, fld.name);
     if (ts_node_is_null(name_node)) return;
 
     TSNode type_node = ts_node_child_by_field_id(node, fld.type);
-    fuior_type *var_type = NULL;
-    if (!ts_node_is_null(type_node)) {
-        var_type = type_from_container(state, type_node);
-    }
-    if (var_type == NULL) {
-        var_type = state->type_any;
-    }
+    fuior_type *var_type = type_from_optional_node_container(state, type_node);
 
     char *var_name = fuior_node_to_string(state, name_node);
     if (fuior_map_get(&state->variables, var_name)) {
@@ -480,6 +425,52 @@ static void collect_declare_var_statement(fuior_state *state, TSNode node) {
     fuior_map_set(&state->varname_enum->as_enum.items, var_name, (void*)1);
 
     free(var_name);
+}
+
+static void collect_command_signature(fuior_state *state, TSNode node) {
+    TSNode name_node = ts_node_child_by_field_id(node, fld.name);
+    if (ts_node_is_null(name_node)) return;
+
+    char *cmd_name = fuior_node_to_string(state, name_node);
+    fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, cmd_name);
+    if (cmd) {
+        add_error(name_node, "%s command already declared", cmd_name);
+        free(cmd_name);
+        return;
+    }
+
+    cmd = fuior_command_register(state, cmd_name);
+    free(cmd_name);
+
+    TSNode arguments_node = ts_node_child_by_field_id(node, fld.arguments);
+
+    for (uint32_t i = 0, n = ts_node_named_child_count(arguments_node); i < n; i += 1) {
+        TSNode arg_node = ts_node_named_child(arguments_node, i);
+        TSSymbol arg_node_sym = ts_node_symbol(arg_node);
+
+        if (arg_node_sym == sym.arg_definition) {
+            TSNode arg_name_node = ts_node_child_by_field_id(arg_node, fld.name);
+            if (ts_node_is_null(arg_name_node)) { continue; }
+
+            TSNode arg_type_node = ts_node_child_by_field_id(arg_node, fld.type);
+            fuior_type *arg_type = type_from_optional_node_container(state, arg_type_node);
+
+            char *arg_name = fuior_node_to_string(state, name_node);
+            fuior_command_arg *arg = fuior_command_arg_new(arg_name, arg_type);
+            free(arg_name);
+            fuior_list_push(&cmd->args, (void*)arg);
+
+        } else if (arg_node_sym == sym.vararg_definition) {
+            TSNode arg_type_node = ts_node_child_by_field_id(arg_node, fld.type);
+            fuior_type *arg_type = type_from_optional_node_container(state, arg_type_node);
+
+            fuior_command_arg *arg = fuior_command_arg_new("...", arg_type);
+            cmd->vararg = arg;
+        }
+    }
+
+    TSNode return_type_node = ts_node_child_by_field_id(node, fld.return_type);
+    cmd->return_type = type_from_optional_node_container(state, return_type_node);
 }
 
 static void scan_for_declarations(fuior_state *state, TSNode node) {
@@ -493,6 +484,8 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
         typecheck_text_statement(state, node);
     } else if (symbol == sym.declare_var_statement) {
         collect_declare_var_statement(state, node);
+    } else if (symbol == sym.command_signature) {
+        collect_command_signature(state, node);
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
