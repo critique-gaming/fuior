@@ -519,7 +519,7 @@ void fuior_lint(fuior_state *state, fuior_source_file *source_file, fuior_import
     state->filename = source_file->filename;
     state->input = source_file->input;
     fuior_import_callback old_cb = state->on_import;
-    fuior_import_callback old_ctx = state->on_import_ctx;
+    void *old_ctx = state->on_import_ctx;
     state->on_import = import_cb;
     state->on_import_ctx = ctx;
     scan_for_declarations(state, ts_tree_root_node(source_file->tree));
