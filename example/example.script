@@ -1,7 +1,11 @@
 local fui = {}
 function fui.intl(namespace, keys)
-  return function (key)
-    return keys[key]
+  return function (key, values)
+    local entry = keys[key]
+    if not values then
+      return entry
+    end
+    return string.gsub(keys[key], "${([a-zA-Z_][a-zA-Z_0-9]*)}", values)
   end
 end
 

@@ -60,7 +60,7 @@ Expressions are computed values. Expressions can be:
 * Literal values. A literal can be:
     * a number: `my_var = 42.1`
     * boolean: `my_var = true`, `my_var = false`
-    * a string (a sequence of characters): `my_var = "Hello world!"`
+    * a string (a sequence of characters): `my_var = "Hello world!"` (C-like escape sequences work)
     * internationalized strings: `my_var = i"Hello world!"`
 * The value of a variable: `my_var = another_var`
 * Mathematical expressions (`+`, `-`, `*`, `/`):
@@ -143,7 +143,7 @@ alice: Should I eat the big mushroom or the small one?
 chesire_cat: [intrigued] Too much thinking! Just go for it!
 ```
 
-## Conditional statements
+### Conditional statements
 
 ```fuior
 if <boolean_expression>
@@ -181,7 +181,7 @@ else
 end
 ```
 
-## Choose statements
+### Choose statements
 
 ```fuior
 choose
@@ -216,7 +216,7 @@ choose
 end
 ```
 
-## Declaring variables
+### Declaring variables
 
 ```fuior
 var foo
@@ -231,7 +231,7 @@ Declaring types for variables is not required, but encouraged.
 Variables can be optionally annotated with decorators (see `@min` and `@max` in 
 the example above). Their functions are runtime-defined.
 
-## Defining your own commands
+### Defining your own commands
 
 ```fuior
 command my_command()
@@ -251,7 +251,7 @@ Commands can return a value that can be used as part of an **expression**.
 Command arguments for custom commands are not yet implemented (the syntax works,
 but there is no mechanism to address the arguments as variables).
 
-## Declaring commands
+### Declaring commands
 
 ```fuior
 declare command1()
@@ -262,13 +262,24 @@ declare command3(arg1: number, arg2: ?string): number
 If your runtime defines external commands, you must define them so that
 type checking works.
 
-## Importing another Fuior file
+### Importing another Fuior file
 
 ```fuior
 import "path/to/file.fui"
 ```
 
 Using the `import` command, you can import commands and variables declared in
-a separate file. When the `import` command is encountered, Fuior runs the 
+a separate file. When the `import` command is encountered, Fuior runs the
 contents of the imported file as if it was written inline. Importing the same
 file twice has no effect the second time.
+
+### String interpolation
+
+```fuior
+alex: Hey, ${player_name}!
+log i"One plus two equals ${1 + 2}"
+```
+
+Internationalized strings and text statement copy can include **expression**
+interpolations. You can insert the value of any expression inside one of these
+strings with the `${expression}` syntax.

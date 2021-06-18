@@ -89,9 +89,10 @@ static void emit_bare_word(fuior_state * state, TSNode node) {
 
 static void emit_string(fuior_state * state, TSNode node) {
     emit("\"");
-    size_t start = ts_node_start_byte(node) + 1;
-    size_t end = ts_node_end_byte(node) - 1;
-    emit_escaped_string(state, state->input + start, (end - start));
+    size_t len;
+    char * s = fuior_parse_string_node(state, node, &len);
+    emit_escaped_string(state, s, len);
+    free(s);
     emit("\"");
 }
 
@@ -207,31 +208,49 @@ static void emit_expression(fuior_state * state, TSNode node) {
     }
 }
 
-static void emit_text_copy_intl_key(fuior_state * state, TSNode node) {
-    size_t start = ts_node_start_byte(node);
-    size_t end = ts_node_end_byte(node);
-    uint32_t text_hash = hash(state->input + start, (end - start));
+static void emit_intl_key(fuior_state * state, const char *s, size_t n) {
+    uint32_t text_hash = hash(s, n);
     fuior_strlist_printf(&state->output, "\"%s%06x\"", state->intl_prefix, (unsigned)text_hash & 0xffffff);
-}
-
-static void emit_text_copy(fuior_state * state, TSNode node) {
-    emit("intl(");
-    emit_text_copy_intl_key(state, node);
-    emit(")");
 }
 
 static void emit_intl_string_key(fuior_state * state, TSNode node) {
-    size_t start = ts_node_start_byte(node) + 2;
-    size_t end = ts_node_end_byte(node) - 1;
-    uint32_t text_hash = hash(state->input + start, (end - start));
-    fuior_strlist_printf(&state->output, "\"%s%06x\"", state->intl_prefix, (unsigned)text_hash & 0xffffff);
+    size_t len;
+    char * s = fuior_parse_string_node(state, node, &len);
+    uint32_t text_hash = hash(s, len);
+    emit_intl_key(state, s, len);
+    free(s);
 }
 
 static void emit_intl_string(fuior_state * state, TSNode node) {
     emit("intl(");
     emit_intl_string_key(state, node);
+
+    int interpolation_count = 0;
+    for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+        TSSymbol symbol = ts_node_symbol(child);
+        if (symbol == sym.string_interpolation) {
+            if (interpolation_count == 0) {
+                emit(", {\n");
+                state->indent += 1;
+            }
+            emit_indent(state);
+            interpolation_count += 1;
+            fuior_strlist_printf(&state->output, "arg%d = ", interpolation_count);
+            emit_expression_container(state, child);
+            emit(",\n");
+        }
+    }
+    if (interpolation_count) {
+        state->indent -= 1;
+        emit_indent(state);
+        emit("}");
+    }
+
     emit(")");
 }
+
+#define emit_text_copy emit_intl_string
 
 static void emit_command_arg(fuior_state * state, TSNode node) {
     TSNode child = ts_node_named_child(node, 0);
@@ -649,27 +668,18 @@ static void emit_block(fuior_state * state, TSNode node) {
 
 static void emit_intl_strings(fuior_state *state, TSNode node) {
     TSSymbol symbol = ts_node_symbol(node);
-    if (symbol == sym.text_copy) {
+    if (symbol == sym.text_copy || symbol == sym.intl_string) {
+        size_t len;
+        char * s = fuior_parse_string_node(state, node, &len);
+
         emit_indent(state);
         emit("[");
-        emit_text_copy_intl_key(state, node);
-
+        emit_intl_key(state, s, len);
         emit("] = \"");
-        size_t start = ts_node_start_byte(node);
-        size_t end = ts_node_end_byte(node);
-        emit_escaped_string(state, state->input + start, (end - start));
+        emit_escaped_string(state, s, len);
         emit("\",\n");
 
-    } else if (symbol == sym.intl_string) {
-        emit_indent(state);
-        emit("[");
-        emit_intl_string_key(state, node);
-
-        emit("] = \"");
-        size_t start = ts_node_start_byte(node) + 2;
-        size_t end = ts_node_end_byte(node) - 1;
-        emit_escaped_string(state, state->input + start, (end - start));
-        emit("\",\n");
+        free(s);
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {

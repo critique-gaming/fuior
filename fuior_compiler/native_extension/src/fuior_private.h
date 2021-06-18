@@ -59,7 +59,9 @@ typedef struct fuior_type {
             fuior_list items;
         } as_op;
         struct {
-            char *literal;
+            const char *literal;
+            size_t length;
+            bool foreign_owned;
         } as_string_literal;
     };
 } fuior_type;
@@ -75,17 +77,24 @@ static inline char *fuior_clone_string(const char *s) {
     return copy;
 }
 
-static inline char *fuior_node_to_string_(fuior_state *state, TSNode node, size_t start_offset, size_t end_offset) {
-    size_t start = ts_node_start_byte(node) + start_offset;
-    size_t end = ts_node_end_byte(node) - end_offset;
-    char * res = (char*)malloc(end - start + 1);
-    memcpy(res, state->input + start, end - start);
-    res[end - start] = 0;
+static inline const char *fuior_node_text_raw(fuior_state *state, TSNode node, size_t *len) {
+    size_t start = ts_node_start_byte(node);
+    size_t end = ts_node_end_byte(node);
+    if (len) *len = end - start;
+    return state->input + start;
+}
+
+static inline char *fuior_node_text(fuior_state *state, TSNode node) {
+    size_t start = ts_node_start_byte(node);
+    size_t end = ts_node_end_byte(node);
+    size_t len = end - start;
+    char * res = (char*)malloc(len + 1);
+    memcpy(res, state->input + start, len);
+    res[len] = 0;
     return res;
 }
 
-#define fuior_node_to_string(state, node) fuior_node_to_string_(state, node, 0, 0)
-#define fuior_string_node_to_string(state, node) fuior_node_to_string_(state, node, 1, 1)
+char *fuior_parse_string_node(fuior_state *state, TSNode node, size_t *len);
 
 static inline fuior_command_arg *fuior_command_arg_new(const char *name, fuior_type *type) {
     fuior_command_arg *arg = (fuior_command_arg*)malloc(sizeof(fuior_command_arg));
@@ -115,6 +124,8 @@ typedef struct fuior_tree_sitter_symbols_t {
     TSSymbol bare_word;
     TSSymbol number;
     TSSymbol string;
+    TSSymbol escape_sequence;
+    TSSymbol string_interpolation;
     TSSymbol intl_string;
     TSSymbol boolean;
     TSSymbol identifier;

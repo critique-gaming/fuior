@@ -93,6 +93,8 @@ TSParser* fuior_parser_new() {
         fetch_symbol(bare_word);
         fetch_symbol(number);
         fetch_symbol(string);
+        fetch_symbol(string_interpolation);
+        fetch_symbol(escape_sequence);
         fetch_symbol(intl_string);
         fetch_symbol(boolean);
         fetch_symbol(identifier);
@@ -205,9 +207,11 @@ fuior_state *fuior_state_new() {
     fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_name", state->type_string));
     fuior_list_push(&enum_cmd->args, fuior_command_arg_new("enum_item",  state->type_string));
     enum_cmd->vararg = fuior_command_arg_new("...", state->type_any);
+    enum_cmd->return_type = state->type_nil;
 
     fuior_command *import_cmd = fuior_command_register(state, "import");
     fuior_list_push(&import_cmd->args, fuior_command_arg_new("filename", state->type_string));
+    enum_cmd->return_type = state->type_nil;
 
     return state;
 }
@@ -296,4 +300,112 @@ void fuior_results_free(fuior_results * results) {
         free(results->warnings[i]);
     }
     free(results->warnings);
+}
+
+static char parse_hex(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return 0;
+}
+
+static char parse_escape_sequence(const char * s, size_t n) {
+    n -= 1;
+    s += 1;
+
+    if (n == 1 && s[0] == 'a') return '\a';
+    if (n == 1 && s[0] == 'b') return '\b';
+    if (n == 1 && s[0] == 'e') return '\x1B';
+    if (n == 1 && s[0] == 'f') return '\f';
+    if (n == 1 && s[0] == 'n') return '\n';
+    if (n == 1 && s[0] == 'r') return '\r';
+    if (n == 1 && s[0] == 't') return '\t';
+    if (n == 1 && s[0] == 'v') return '\v';
+    if (n == 1 && s[0] == '\\') return '\\';
+    if (n == 1 && s[0] == '\'') return '\'';
+    if (n == 1 && s[0] == '\"') return '\"';
+    if (n == 1 && s[0] == '?') return '\?';
+    if (n == 3 && s[0] == 'x') {
+        return (parse_hex(s[1]) << 4) | parse_hex(s[2]);
+    }
+    if (n >= 1 && s[0] >= '0' && s[0] <= '7') {
+        if (n == 1) {
+            return s[0] - '0';
+        }
+        if (n == 2) {
+            return ((s[0] - '0') << 3) | (s[1] - '0');
+        }
+        return ((s[0] - '0') << 6) || ((s[1] - '0') << 3) | (s[2] - '0');
+    }
+    return 0;
+}
+
+char * fuior_parse_string_node(fuior_state *state, TSNode node, size_t *len) {
+    size_t start = ts_node_start_byte(node);
+    size_t end = ts_node_end_byte(node);
+
+    // Skip the quotes
+    TSSymbol symbol = ts_node_symbol(node);
+    if (symbol == sym.string) {
+        start += 1;
+        end -= 1;
+    } else if (symbol == sym.intl_string) {
+        start += 2;
+        end -= 1;
+    }
+
+    size_t n = ts_node_named_child_count(node);
+    size_t string_length = end - start;
+    int interpolation_count = 0;
+
+    for (size_t i = 0; i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+        size_t c_start = ts_node_start_byte(child);
+        size_t c_end = ts_node_end_byte(child);
+        string_length -= c_end - c_start;
+
+        TSSymbol child_sym = ts_node_symbol(child);
+        if (child_sym == sym.escape_sequence) {
+            string_length += 1;
+        } else if (child_sym == sym.string_interpolation) {
+            interpolation_count += 1;
+            string_length += snprintf(NULL, 0, "${arg%d}", interpolation_count);
+        }
+    }
+
+    if (len) *len = string_length;
+    char * buf = (char*)malloc(string_length + 1);
+    char * s = buf;
+
+    interpolation_count = 0;
+    for (size_t i = 0; i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+        size_t c_start = ts_node_start_byte(child);
+        size_t c_end = ts_node_end_byte(child);
+
+        if (c_start > start) {
+            memcpy(s, state->input + start, c_start - start);
+            s += c_start - start;
+        }
+        start = c_end;
+
+        TSSymbol child_sym = ts_node_symbol(child);
+        if (child_sym == sym.escape_sequence) {
+            size_t escape_len;
+            const char * escape_str = fuior_node_text_raw(state, child, &escape_len);
+            s[0] = parse_escape_sequence(escape_str, escape_len);
+            s += 1;
+        } else if (child_sym == sym.string_interpolation) {
+            interpolation_count += 1;
+            s += snprintf(s, string_length - (s - buf) + 1, "${arg%d}", interpolation_count);
+        }
+    }
+
+    if (start < end) {
+        memcpy(s, state->input + start, end - start);
+        s += end - start;
+    }
+
+    s[0] = '\0';
+    return buf;
 }

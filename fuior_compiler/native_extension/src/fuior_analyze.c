@@ -83,9 +83,9 @@ char * fuior_command_arg_to_string(fuior_state *state, TSNode node) {
     TSNode child = fuior_skip_comments(ts_node_named_child(node, 0));
     TSSymbol symbol = ts_node_symbol(child);
     if (symbol == sym.bare_word) {
-        return fuior_node_to_string(state, child);
+        return fuior_node_text(state, child);
     } else if (symbol == sym.string) {
-        return fuior_string_node_to_string(state, child);
+        return fuior_parse_string_node(state, child, NULL);
     } else {
         return NULL;
     }

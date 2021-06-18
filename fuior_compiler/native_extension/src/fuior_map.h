@@ -19,6 +19,15 @@ typedef struct fuior_map {
     fuior_map_item *buckets[FUIOR_MAP_BUCKET_COUNT];
 } fuior_map;
 
+static inline size_t fuior_map_nhash(const char *key, size_t len) {
+    size_t hash = 0;
+    for (const char *c = key; len; c += 1, len -= 1) {
+        // Circular bit rotate then XOR character
+        hash = (((hash << FUIOR_MAP_HASH_ROTATE_BITS) | (hash >> (FUIOR_MAP_HASH_BITS - FUIOR_MAP_HASH_ROTATE_BITS))) ^ (*c)) & ((1 << FUIOR_MAP_HASH_BITS) - 1);
+    }
+    return hash & ((1 << FUIOR_MAP_HASH_BITS) - 1);
+}
+
 static inline size_t fuior_map_hash(const char *key) {
     size_t hash = 0;
     for (const char *c = key; *c; c += 1) {
@@ -60,6 +69,15 @@ static inline void fuior_map_set(fuior_map *self, const char *key, void *value) 
 
     item->value = value;
 }
+
+static inline void *fuior_map_get_n(fuior_map *self, const char *key, size_t key_len) {
+    size_t hash = fuior_map_nhash(key, key_len);
+    fuior_map_item *item = self->buckets[hash];
+    while (item != NULL && 0 != strncmp(item->key, key, key_len)) {
+        item = item->next;
+    }
+    return item ? item->value : NULL;
+};
 
 static inline void *fuior_map_get(fuior_map *self, const char *key) {
     size_t hash = fuior_map_hash(key);
