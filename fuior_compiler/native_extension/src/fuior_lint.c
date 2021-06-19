@@ -447,6 +447,14 @@ static void typecheck_condition(fuior_state *state, TSNode node) {
     }
 }
 
+static void typecheck_return_statement(fuior_state *state, TSNode node) {
+    TSNode value_node = ts_node_child_by_field_id(node, fld.return_value);
+    fuior_type *t = ts_node_is_null(value_node)
+        ? state->type_nil
+        : type_of_container(state, node);
+    // TODO: Check the return type
+}
+
 static void typecheck_assign_statement(fuior_state *state, TSNode node) {
     char *assign_name = NULL;
     char *assign_op = NULL;
@@ -628,6 +636,8 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
         typecheck_string_interpolation(state, node);
     } else if (symbol == sym.condition || symbol == sym.choice_condition) {
         typecheck_condition(state, node);
+    } else if (symbol == sym.return_statement) {
+        typecheck_return_statement(state, node);
     }
 
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
