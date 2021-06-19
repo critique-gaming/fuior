@@ -254,9 +254,9 @@ but there is no mechanism to address the arguments as variables).
 ### Declaring commands
 
 ```fuior
-declare command1()
-declare command2(arg1: number, arg2: ?string)
-declare command3(arg1: number, arg2: ?string): number
+declare command command1()
+declare command command2(arg1: number, arg2: ?string)
+declare command command3(arg1: number, arg2: ?string): number
 ```
 
 If your runtime defines external commands, you must define them so that
