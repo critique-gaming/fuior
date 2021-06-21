@@ -26,8 +26,8 @@ static inline uint32_t count_leading_zeros(uint32_t x) {
 
 static inline uint32_t count_leading_zeros(uint32_t x) {
   if (x == 0) return 32;
-  uint32_t result;
-  _BitScanReverse(&result, x);
+  unsigned long result;
+  _BitScanReverse(&result, (unsigned long)x);
   return 31 - result;
 }
 
