@@ -248,13 +248,14 @@ static fuior_type *type_of_node(fuior_state *state, TSNode node) {
     }
 
     if (symbol == sym.function_call) {
-      char *name = fuior_node_text(state, node);
-      fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, name);
-      if (!cmd) {
-          add_error(node, "unknown command %s", name);
-      }
-      free(name);
-      return cmd ? cmd->return_type : state->type_any;
+        TSNode verb_node = ts_node_child_by_field_id(node, fld.name);
+        char *name = fuior_node_text(state, verb_node);
+        fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, name);
+        if (!cmd) {
+            add_error(node, "unknown command %s", name);
+        }
+        free(name);
+        return cmd ? cmd->return_type : state->type_any;
     }
 
     return state->type_any;
