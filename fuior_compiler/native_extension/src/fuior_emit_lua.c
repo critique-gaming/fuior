@@ -221,17 +221,15 @@ static void emit_intl_string_key(fuior_state * state, TSNode node) {
     free(s);
 }
 
-static void emit_intl_string(fuior_state * state, TSNode node) {
-    emit("intl(");
-    emit_intl_string_key(state, node);
-
+static void emit_intl_interpolations(fuior_state * state, TSNode node, const char * prefix) {
     int interpolation_count = 0;
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_named_child(node, i);
         TSSymbol symbol = ts_node_symbol(child);
         if (symbol == sym.string_interpolation) {
             if (interpolation_count == 0) {
-                emit(", {\n");
+                emit(prefix);
+                emit("{\n");
                 state->indent += 1;
             }
             emit_indent(state);
@@ -246,7 +244,12 @@ static void emit_intl_string(fuior_state * state, TSNode node) {
         emit_indent(state);
         emit("}");
     }
+}
 
+static void emit_intl_string(fuior_state * state, TSNode node) {
+    emit("intl(");
+    emit_intl_string_key(state, node);
+    emit_intl_interpolations(state, node, ", ");
     emit(")");
 }
 
@@ -405,9 +408,8 @@ static void emit_text_statement(fuior_state * state, TSNode node) {
             if (!has_animation) {
                 emit("nil, ");
             }
-            emit_text_copy(state, child);
-            emit(", ");
             emit_intl_string_key(state, child);
+            emit_intl_interpolations(state, child, ", ");
         }
     }
 
