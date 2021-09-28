@@ -406,6 +406,8 @@ static void emit_text_statement(fuior_state * state, TSNode node) {
                 emit("nil, ");
             }
             emit_text_copy(state, child);
+            emit(", ");
+            emit_intl_string_key(state, child);
         }
     }
 
