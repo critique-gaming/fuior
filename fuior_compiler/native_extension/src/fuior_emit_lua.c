@@ -221,7 +221,7 @@ static void emit_intl_string_key(fuior_state * state, TSNode node) {
     free(s);
 }
 
-static void emit_intl_interpolations(fuior_state * state, TSNode node, const char * prefix) {
+static bool emit_intl_interpolations(fuior_state * state, TSNode node, const char * prefix) {
     int interpolation_count = 0;
     for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
         TSNode child = ts_node_named_child(node, i);
@@ -243,7 +243,9 @@ static void emit_intl_interpolations(fuior_state * state, TSNode node, const cha
         state->indent -= 1;
         emit_indent(state);
         emit("}");
+        return true;
     }
+    return false;
 }
 
 static void emit_intl_string(fuior_state * state, TSNode node) {
@@ -409,7 +411,10 @@ static void emit_text_statement(fuior_state * state, TSNode node) {
                 emit("nil, ");
             }
             emit_intl_string_key(state, child);
-            emit_intl_interpolations(state, child, ", ");
+            if (!emit_intl_interpolations(state, child, ", ")) {
+                emit(", nil");
+            }
+            emit(", intl");
         }
     }
 
