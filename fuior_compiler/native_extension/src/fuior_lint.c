@@ -563,6 +563,18 @@ static void collect_declare_var_statement(fuior_state *state, TSNode node) {
     fuior_map_set(&state->variables, var_name, (void*)var_type);
     fuior_map_set(&state->varname_enum->as_enum.items, var_name, (void*)1);
 
+    TSNode initializer_node = ts_node_child_by_field_id(node, fld.default_value);
+    if (!ts_node_is_null(initializer_node)) {
+        fuior_type *rvalue_type = type_of_container(state, initializer_node);
+        if (!can_cast_to(rvalue_type, var_type)) {
+            char *var_type_name = fuior_type_name(var_type);
+            char *rvalue_type_name = fuior_type_name(rvalue_type);
+            add_error(initializer_node, "trying to assign value of incompatible type to %s: expected %s, got %s", var_name, var_type_name, rvalue_type_name);
+            free(var_type_name);
+            free(rvalue_type_name);
+        }
+    }
+
     free(var_name);
 }
 
