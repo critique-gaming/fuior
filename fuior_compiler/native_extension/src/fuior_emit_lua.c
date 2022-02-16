@@ -186,6 +186,8 @@ static void emit_expression(fuior_state * state, TSNode node) {
         emit_number(state, node);
     } else if (symbol == sym.boolean) {
         emit_boolean(state, node);
+    } else if (symbol == sym.nil) {
+        emit("nil");
     } else if (symbol == sym.string) {
         emit_string(state, node);
     } else if (symbol == sym.intl_string) {

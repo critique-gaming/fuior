@@ -11,6 +11,9 @@ log "This is a test"
 
 import "example/fuior_files/imported.fui"
 
+some_optional_flag = false
+some_optional_flag = nil
+
 if some_stat > 0
   my_command
 end

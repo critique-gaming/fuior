@@ -97,6 +97,7 @@ TSParser* fuior_parser_new() {
         fetch_symbol(escape_sequence);
         fetch_symbol(intl_string);
         fetch_symbol(boolean);
+        fetch_symbol(nil);
         fetch_symbol(identifier);
         fetch_symbol(function_call);
         fetch_symbol(unary_expression);

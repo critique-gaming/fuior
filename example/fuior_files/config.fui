@@ -7,6 +7,8 @@ enum animation_bob idle
 var some_stat: number @min(-10) @max(10) = 0
 var some_flag: boolean = false
 
+var some_optional_flag: ?boolean = nil
+
 declare command log(...: any)
 declare command log_var(varname: varname)
 declare command set(varname: varname)
