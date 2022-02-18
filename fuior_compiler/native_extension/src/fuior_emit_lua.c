@@ -631,6 +631,8 @@ static void emit_arg_enscoping(fuior_state * state, TSNode node) {
                 emit_indent(state);
                 emit("fui.declare_var(");
                 emit_string(state, name_node);
+                emit(", ");
+                emit_identifier(state, name_node);
                 emit(")\n");
             }
         }
