@@ -646,7 +646,6 @@ static void collect_command_arguments(fuior_state *state, fuior_command *cmd) {
     // TODO: Handle scopes here
     for (fuior_list_item *it = cmd->args.first; it; it = it->next) {
         fuior_command_arg *arg = (fuior_command_arg*)it->data;
-        printf("%s %s\n", arg->name, fuior_type_name(arg->type));
         fuior_map_set(&state->variables, arg->name, (void*)arg->type);
         fuior_map_set(&state->varname_enum->as_enum.items, arg->name, (void*)1);
     }
