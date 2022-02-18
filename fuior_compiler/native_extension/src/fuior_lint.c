@@ -318,6 +318,21 @@ static bool can_cast_to(fuior_type *from, fuior_type *to) {
         return false;
     }
 
+    if (from->tag == TYPE_ENUM) {
+        if (to->tag == TYPE_STRING) return true;
+        if (to->tag == TYPE_ENUM) {
+            for (int i = 0; i < FUIOR_MAP_BUCKET_COUNT; i += 1) {
+                for (fuior_map_item *it = from->as_enum.items.buckets[i]; it; it = it->next) {
+                    if (fuior_map_get(&to->as_enum.items, it->key) == NULL) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     return false;
 }
 
@@ -606,7 +621,7 @@ static fuior_command* collect_command_signature(fuior_state *state, TSNode node)
             TSNode arg_type_node = ts_node_child_by_field_id(arg_node, fld.type);
             fuior_type *arg_type = type_from_optional_node_container(state, arg_type_node);
 
-            char *arg_name = fuior_node_text(state, name_node);
+            char *arg_name = fuior_node_text(state, arg_name_node);
             fuior_command_arg *arg = fuior_command_arg_new(arg_name, arg_type);
             free(arg_name);
             fuior_list_push(&cmd->args, (void*)arg);
@@ -631,6 +646,7 @@ static void collect_command_arguments(fuior_state *state, fuior_command *cmd) {
     // TODO: Handle scopes here
     for (fuior_list_item *it = cmd->args.first; it; it = it->next) {
         fuior_command_arg *arg = (fuior_command_arg*)it->data;
+        printf("%s %s\n", arg->name, fuior_type_name(arg->type));
         fuior_map_set(&state->variables, arg->name, (void*)arg->type);
         fuior_map_set(&state->varname_enum->as_enum.items, arg->name, (void*)1);
     }
@@ -662,10 +678,10 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
         collect_declare_var_statement(state, node);
     } else if (symbol == sym.declare_command_statement) {
         TSNode signature = ts_node_child_by_field_id(node, fld.signature);
-        collect_command_signature(state, node);
+        collect_command_signature(state, signature);
     } else if (symbol == sym.define_command_statement) {
         TSNode signature = ts_node_child_by_field_id(node, fld.signature);
-        fuior_command *cmd = collect_command_signature(state, node);
+        fuior_command *cmd = collect_command_signature(state, signature);
         if (cmd) collect_command_arguments(state, cmd);
     } else if (symbol == sym.string_interpolation) {
         typecheck_string_interpolation(state, node);
