@@ -620,6 +620,23 @@ static void emit_arg_definition_list(fuior_state * state, TSNode node) {
     }
 }
 
+static void emit_arg_enscoping(fuior_state * state, TSNode node) {
+    if (ts_node_is_null(node)) return;
+    for (uint32_t i = 0, n = ts_node_named_child_count(node); i < n; i += 1) {
+        TSNode child = ts_node_named_child(node, i);
+        TSSymbol symbol = ts_node_symbol(child);
+        if (symbol == sym.arg_definition) {
+            TSNode name_node = ts_node_child_by_field_id(child, fld.name);
+            if (!ts_node_is_null(name_node)) {
+                emit_indent(state);
+                emit("fui.declare_var(");
+                emit_string(state, name_node);
+                emit(")\n");
+            }
+        }
+    }
+}
+
 static void emit_define_command_statement(fuior_state * state, TSNode node) {
     TSNode signature_node = ts_node_child_by_field_id(node, fld.signature);
     TSNode name_node = ts_node_child_by_field_id(signature_node, fld.name);
@@ -638,6 +655,7 @@ static void emit_define_command_statement(fuior_state * state, TSNode node) {
     emit_arg_definition_list(state, arg_list_node);
     emit(")\n");
     state->indent += 1;
+    emit_arg_enscoping(state, arg_list_node);
     emit_block(state, body_node);
     state->indent -= 1;
     emit_indent(state);

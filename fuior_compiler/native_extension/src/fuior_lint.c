@@ -578,16 +578,16 @@ static void collect_declare_var_statement(fuior_state *state, TSNode node) {
     free(var_name);
 }
 
-static void collect_command_signature(fuior_state *state, TSNode node) {
+static fuior_command* collect_command_signature(fuior_state *state, TSNode node) {
     TSNode name_node = ts_node_child_by_field_id(node, fld.name);
-    if (ts_node_is_null(name_node)) return;
+    if (ts_node_is_null(name_node)) return NULL;
 
     char *cmd_name = fuior_node_text(state, name_node);
     fuior_command *cmd = (fuior_command*)fuior_map_get(&state->commands, cmd_name);
     if (cmd) {
         add_error(name_node, "%s command already declared", cmd_name);
         free(cmd_name);
-        return;
+        return NULL;
     }
 
     cmd = fuior_command_register(state, cmd_name);
@@ -622,6 +622,18 @@ static void collect_command_signature(fuior_state *state, TSNode node) {
 
     TSNode return_type_node = ts_node_child_by_field_id(node, fld.return_type);
     cmd->return_type = type_from_optional_node_container(state, return_type_node);
+
+    return cmd;
+}
+
+static void collect_command_arguments(fuior_state *state, fuior_command *cmd) {
+    if (!cmd) return;
+    // TODO: Handle scopes here
+    for (fuior_list_item *it = cmd->args.first; it; it = it->next) {
+        fuior_command_arg *arg = (fuior_command_arg*)it->data;
+        fuior_map_set(&state->variables, arg->name, (void*)arg->type);
+        fuior_map_set(&state->varname_enum->as_enum.items, arg->name, (void*)1);
+    }
 }
 
 static void typecheck_string_interpolation(fuior_state *state, TSNode node) {
@@ -648,8 +660,13 @@ static void scan_for_declarations(fuior_state *state, TSNode node) {
         typecheck_text_statement(state, node);
     } else if (symbol == sym.declare_var_statement) {
         collect_declare_var_statement(state, node);
-    } else if (symbol == sym.command_signature) {
+    } else if (symbol == sym.declare_command_statement) {
+        TSNode signature = ts_node_child_by_field_id(node, fld.signature);
         collect_command_signature(state, node);
+    } else if (symbol == sym.define_command_statement) {
+        TSNode signature = ts_node_child_by_field_id(node, fld.signature);
+        fuior_command *cmd = collect_command_signature(state, node);
+        if (cmd) collect_command_arguments(state, cmd);
     } else if (symbol == sym.string_interpolation) {
         typecheck_string_interpolation(state, node);
     } else if (symbol == sym.condition || symbol == sym.choice_condition) {
