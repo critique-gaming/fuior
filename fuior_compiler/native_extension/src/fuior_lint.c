@@ -275,6 +275,7 @@ static bool can_cast_to(fuior_type *from, fuior_type *to) {
 
     if (from->tag == TYPE_UNION) {
         for (fuior_list_item *it = from->as_op.items.first; it != NULL; it = it->next) {
+            if (((fuior_type*)it->data)->tag == TYPE_NIL) continue; // Relaxed optional strengthening
             if (!can_cast_to((fuior_type*)it->data, to)) return false;
         }
         return true;
